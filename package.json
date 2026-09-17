@@ -1,0 +1,22 @@
+{
+  "name": "s2c",
+  "version": "1.0.0",
+  "description": "s2c's compiler",
+  "keywords": [
+    "s2c",
+    "compiler"
+  ],
+  "license": "MIT",
+  "author": "Kashi",
+  "type": "module",
+  "main": "dist/s2c.js",
+  "scripts": {
+    "test": "npx tsc && npm link && s2c"
+  },
+  "bin": {
+    "s2c": "./dist/bin/s2c.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.3"
+  }
+}
