@@ -22,6 +22,27 @@ export enum TokenType {
     CLOSE_PAREN,    // )
     OPEN_BRACE,     // {
     CLOSE_BRACE,    // }
+    COMMA,          // ,
+}
+
+export const Precedence: Record<number, number> = {
+    [TokenType.MUL]: 17,
+    [TokenType.DIV]: 17,
+    [TokenType.PLUS]: 16,
+    [TokenType.MINUS]: 16,
+    [TokenType.ASSIGN]: 1
+}
+
+export function get_p(num: number): number {
+    return Precedence[num] ?? 0;
+}
+
+export const right_associative: number[] = [
+    TokenType.ASSIGN
+];
+
+export function is_right_associative(num: number): boolean {
+    return right_associative.includes(num);
 }
 
 /**
@@ -38,7 +59,8 @@ export const SymbolTokens: Record<string, TokenType> = {
     "(": TokenType.OPEN_PAREN,
     ")": TokenType.CLOSE_PAREN,
     "{": TokenType.OPEN_BRACE,
-    "}": TokenType.CLOSE_BRACE
+    "}": TokenType.CLOSE_BRACE,
+    ",": TokenType.COMMA
 }
 
 export interface span {
@@ -46,6 +68,26 @@ export interface span {
     column: number;
     offset: number;
     length: number;
+}
+
+/**
+ * simple utility to reduce verbose
+ * @returns 
+ */
+export function def_span(): span {
+    return { line: 0, column: 0, offset: 0, length: 0 };
+}
+
+/**
+ * utility to merge spans
+ */
+export function merge(pos1: span, pos2: span): span {
+    return {
+        line: pos1.line,
+        column: pos1.column,
+        offset: pos1.offset,
+        length: pos2.offset + pos2.length - pos1.offset
+    }
 }
 
 // this includes useful metadata for the parser (and subsequent components ofc)

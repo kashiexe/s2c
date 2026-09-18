@@ -12,6 +12,7 @@ import * as s2t from "../utils/term.js";
  * @returns the parsed node, or null if parsing failed
  */
 export function parse_token(token: Token, machine: Machine): Node | null {
+
     switch(token.type) {
         case TokenType.MNEMONIC: {
             if(token.value in statements) {

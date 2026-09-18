@@ -14,4 +14,6 @@ export function compile() {
     const tokens = lexer(code);
 
     const ast = parse(tokens);
+    console.log(ast);
+    fs.writeFileSync("./dist/ast.json", JSON.stringify(ast, null, 4));
 }

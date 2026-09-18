@@ -19,4 +19,12 @@ export default class Machine {
     peek(offset?: number): Token | null {
         return this.tokens[this.offset + (offset ?? 0)] ?? null;
     }
+
+    /**
+     * quickly checks if offset is within bounds (removes verbose)
+     * @returns 
+     */
+    offset_inb(): boolean {
+        return this.offset < this.tokens.length;
+    }
 }
