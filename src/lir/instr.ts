@@ -23,6 +23,10 @@ export default class Instruction {
         if(this.result) str = `%${this.result.id}<${ValueTypeToString[this.result.type]}>`;
         return str;
     }
+
+    operands(): Value[] {
+        return [];
+    }
 }
 
 export class ConstInstr extends Instruction {
@@ -40,18 +44,37 @@ export class ConstInstr extends Instruction {
         str += `%${this.result.id}<${ValueTypeToString[this.result.type]}>: CONST ${this.value}`;
         return str;
     }
+
+    operands(): Value[] {
+        return [];
+    }
 }
 
-export class AddInstr extends Instruction {
-    lhs: Value;
+export class BinaryInstr extends Instruction {
+    lhs: Value
     rhs: Value;
     result: Value;
-
-    constructor(lhs: Value, rhs: Value, result: Value) {
-        super(InstructionType.Add);
+    
+    constructor(type: InstructionType, lhs: Value, rhs: Value, result: Value) {
+        super(type);
         this.lhs = lhs;
         this.rhs = rhs;
         this.result = result;
+    }
+
+    to_string(): string {
+        let str = "";
+        return str;
+    }
+
+    operands(): Value[] {
+        return [this.lhs, this.rhs];
+    }
+}
+
+export class AddInstr extends BinaryInstr {
+    constructor(lhs: Value, rhs: Value, result: Value) {
+        super(InstructionType.Add, lhs, rhs, result);
     }
 
     to_string(): string {
@@ -70,6 +93,10 @@ export class LoadInstr extends Instruction {
         this.address = address;
         this.result = result;
     }
+
+    operands(): Value[] {
+        return [this.address];
+    }
 }
 
 export class StoreInstr extends Instruction {
@@ -80,6 +107,10 @@ export class StoreInstr extends Instruction {
         super(InstructionType.Store);
         this.address = address;
         this.value = value;
+    }
+
+    operands(): Value[] {
+        return [this.address, this.value];
     }
 }
 
@@ -93,5 +124,9 @@ export class CallInstr extends Instruction {
         this.callee = callee;
         this.args = args;
         this.result = result;
+    }
+
+    operands(): Value[] {
+        return [this.callee, ...this.args];
     }
 }
