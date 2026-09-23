@@ -1,8 +1,9 @@
 import Module from "../../lir/module.js";
-import CGBlock from "./cgblock.js";
+import CGBlock, { Symbol } from "./cgblock.js";
 import type { Allocation } from "./allocators/sysvamd.js";
 import BasicBlock from "../../lir/bb.js";
 import translate_instr from "./lir/translate_instr.js";
+import translate_term from "./lir/translate_term.js";
 
 /**
  * translates a single basic block into x86_64 instructions
@@ -20,8 +21,12 @@ export function translate_block(module: Module, block: BasicBlock, alloc: Alloca
 
         // translate instruction
         let bytes = translate_instr(instr, alloc);
-        cgblock.add_code(bytes);
+        cgblock.add(bytes);
     }
+
+    // translate terminator
+    let bytes = translate_term(block.terminator, alloc);
+    cgblock.add(bytes);
 }
 
 /**
@@ -36,15 +41,31 @@ export default function translate(module: Module, alloc: Allocation, os: string)
     for(let i = 0; i < module.functions.length; i++) {
         const func = module.functions[i]!;
 
+        if(func.name === "main") cgblock.add(cgblock.text.length);
+
+        // add symbol to cgblock
+        let symbol = new Symbol(
+            func.name, 
+            "text",
+            cgblock.text.length, 
+            0, 
+            true
+        );
+
+        cgblock.add(symbol);
+
+        // translate entry block first
         translate_block(module, func.entry, alloc, os, cgblock);
 
+        // translate other blocks
         for(let j = 0; j < func.blocks.length; j++) {
             const block = func.blocks[j]!;
             translate_block(module, block, alloc, os, cgblock);
         }
-    }
 
-    console.log(cgblock);
+        // update symbol size
+        symbol.size = cgblock.text.length - symbol.offset;
+    }
 
     return cgblock;
 }

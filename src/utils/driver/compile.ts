@@ -3,9 +3,10 @@ import fs from "fs"
 import { parse } from "../../parser/parser.js";
 import lir from "../../lir/lir.js";
 import arch from "../../codegen/codegen.js";
+import Linker from "../../linker/x86_64/link.js";
 
 /**
- * for now, it's only a hardcoded program
+ * for now, it can only support a single file and the output is in x86_64 linux sysvamd ABI format.
  */
 export function compile() {
     const args = process.argv.slice(2);
@@ -21,5 +22,11 @@ export function compile() {
 
     // execute
     const x86_64 = arch["x86_64"].execute;
-    x86_64(module, "sysvamd", "linux");
+    const cgblock = x86_64(module, "sysvamd", "linux");
+
+    // link
+    const linker = new Linker("linux", [cgblock]);
+    linker.link({
+        
+    });
 }

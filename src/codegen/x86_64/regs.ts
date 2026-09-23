@@ -56,3 +56,16 @@ export const r13 = r64(regs.r13);
 export const r14 = r64(regs.r14);
 export const r15 = r64(regs.r15);
 export const rip = new reg(64, 0, true);
+
+// misc helpers
+
+/**
+ * returns a prefix for the bit size override for an instruction if needed
+ * @param bits 
+ * @returns 
+ */
+export function op_override(bits: number): number {
+    if(bits === 16) return 0x66;
+
+    throw new Error(`[Engine]: operand override for ${bits} bits has not been implemented yet`);
+}

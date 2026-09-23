@@ -5,9 +5,9 @@ import mov from "../../instructions/mov.js";
 import { rax } from "../../regs.js";
 
 export default function translate_add(instr: AddInstr, alloc: Allocation): Uint8Array {
-    const res = alloc.get(instr.result!.id)!;
-    const lhs = alloc.get(instr.lhs!.id)!;
-    const rhs = alloc.get(instr.rhs!.id)!;
+    const res = alloc.get(instr.result.id)!;
+    const lhs = alloc.get(instr.lhs.id)!;
+    const rhs = alloc.get(instr.rhs.id)!;
 
     let bytes = add(lhs, rhs);
 
