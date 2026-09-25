@@ -1,7 +1,7 @@
 import CGBlock from "../../codegen/x86_64/cgblock.js";
 import lnx_parse_stack from "./linux/parse_stack.js";
 import call from "../../codegen/x86_64/instructions/call.js";
-import { ptr32, ptr64 } from "../../codegen/x86_64/mem.js";
+import { ptr32 } from "../../codegen/x86_64/mem.js";
 import { rax, rdi, rip } from "../../codegen/x86_64/regs.js";
 import { syscalls } from "../../codegen/linux/syscalls.js";
 import syscall from "../../codegen/x86_64/instructions/syscall.js";
@@ -24,8 +24,6 @@ export default class S2RT {
         this.exe_entry = 0;
         this.ctx = global_cgblock;
         this.generate();
-        
-        console.log(this.ctx);
     }
 
     /**
@@ -37,10 +35,17 @@ export default class S2RT {
         }
     }
 
+    update_offsets(plus: number) {
+
+    }
+
     /**
      * linux specific
      */
     generate_linux() {
+        // get main entry symbol
+        let main_symbol = this.ctx.symbols.find(s => (s.name === "main" && s.global))!;
+
         // first step of the entry point is to set up the stack and call main
         let stack_setup = lnx_parse_stack();
 
@@ -57,7 +62,7 @@ export default class S2RT {
                 rip, 
                 undefined, 
                 undefined, 
-                BigInt(this.ctx.symbols.find(s => (s.name === "main" && s.global))!.offset + syscall_exit.length + 4 /* 4 bytes from the offset */)
+                BigInt(main_symbol.offset + syscall_exit.length + 4 /* 4 bytes from the offset's own bytes */)
             )
         );
 
@@ -71,6 +76,7 @@ export default class S2RT {
         // add _start to the beginning of the text section
         this.ctx.text = Array<number>().concat([..._start, ...this.ctx.text]);
 
-        console.log(this.ctx.text);
+        // update main's offset
+        main_symbol.offset += _start.length;
     }
 }

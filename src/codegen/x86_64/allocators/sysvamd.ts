@@ -1,3 +1,7 @@
+/*
+    no need to change the name of the file as the file already is inside of a 64 bit arch thus it's already implied it's 64 bit
+*/
+
 import Module from "../../../lir/module.js";
 import TargetABI from "./target.js";
 import { regs, r64, reg } from "../regs.js";
@@ -5,7 +9,7 @@ import type BasicBlock from "../../../lir/bb.js";
 import type Value from "../../../lir/value.js";
 
 /**
- * no need to change the name of the file as the file already is inside of a 64 bit arch thus it's already implied it's 64 bit
+ * this class includes all registers that are allocatable, caller saved, callee saved, arg regs and return register according to the SysVAMD64 ABI
  */
 export class SysVAMD64ABI extends TargetABI {
     constructor() {

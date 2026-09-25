@@ -53,6 +53,7 @@ export default class Linker {
     link(info: any) {
         if(this.os === "linux") {
             this.elf = new ELF(info, this.s2rt);
+            this.elf.link(info.output);
         }
     }
 }

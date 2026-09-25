@@ -9,6 +9,7 @@ import Linker from "../../linker/x86_64/link.js";
  * for now, it can only support a single file and the output is in x86_64 linux sysvamd ABI format.
  */
 export function compile() {
+    const now = new Date();
     const args = process.argv.slice(2);
     const file = args[0] || "./tests/index.s2";
 
@@ -27,6 +28,10 @@ export function compile() {
     // link
     const linker = new Linker("linux", [cgblock]);
     linker.link({
-        
+        output: `./build/${file.split('/').pop()!.split('.')[0]}`,
     });
+    const end = new Date();
+    const duration = end.getTime() - now.getTime();
+
+    console.log(`\x1b[38;5;39;1m• \x1b[38;5;15mCompiled \x1b[38;5;222;4m${file}\x1b[38;5;15;24m to \x1b[38;5;85;4m./build/${file.split('/').pop()!.split('.')[0]}\x1b[38;5;15;24m in \x1b[38;5;219m${duration}\x1b[38;5;15mms\x1b[0m`);
 }

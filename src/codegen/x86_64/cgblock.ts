@@ -1,13 +1,13 @@
-export type Section = "text" | "rodata" | "data" | "bss";
+export type __section_names__ = "text" | "rodata" | "data" | "bss";
 
 export class Symbol {
     name: string;
-    section: Section;
+    section: __section_names__;
     offset: number;
     size: number;
     global: boolean;
 
-    constructor(name: string, section: Section, offset: number, size: number, global: boolean) {
+    constructor(name: string, section: __section_names__, offset: number, size: number, global: boolean) {
         this.name = name;
         this.section = section;
         this.offset = offset;
@@ -24,12 +24,12 @@ export enum RelocType {
 
 export class Reloc {
     offset: number;
-    section: Section;
+    section: __section_names__;
     type: RelocType;
     symbol: string;
     addend: bigint;
 
-    constructor(offset: number, section: Section, type: RelocType, symbol: string, addend: bigint) {
+    constructor(offset: number, section: __section_names__, type: RelocType, symbol: string, addend: bigint) {
         this.offset = offset;
         this.section = section;
         this.type = type;
@@ -50,6 +50,7 @@ export default class CGBlock {
     rodata: Array<number>;
     data: Array<number>;
     bss: number;
+    all_sections: __section_names__[] = ["text", "rodata", "data", "bss"];
 
     // relocations
     relocations: Reloc[];
@@ -79,5 +80,9 @@ export default class CGBlock {
         } else {
             this.symbols.push(what as Symbol);
         }
+    }
+
+    get(section_name: string | __section_names__): Array<number> | number {
+        return this[section_name as keyof CGBlock] as Array<number> | number;
     }
 }
