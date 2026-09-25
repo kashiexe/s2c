@@ -3,10 +3,12 @@
 */
 
 import Module from "../../../lir/module.js";
-import TargetABI from "./target.js";
+import TargetABI, { Allocation } from "./target.js";
 import { regs, r64, reg } from "../regs.js";
 import type BasicBlock from "../../../lir/bb.js";
 import type Value from "../../../lir/value.js";
+
+export { Allocation } from "./target.js";
 
 /**
  * this class includes all registers that are allocatable, caller saved, callee saved, arg regs and return register according to the SysVAMD64 ABI
@@ -128,22 +130,6 @@ export function block(ctx: Context, block: BasicBlock) {
 
             intervals.set(id, interval);
         }
-    }
-}
-
-export class Allocation {
-    locations: Map<number, reg>; // for now null but will be StackSlot in the future
-
-    constructor() {
-        this.locations = new Map();
-    }
-
-    set(id: number, location: reg) {
-        this.locations.set(id, location);
-    }
-
-    get(id: number): reg | undefined {
-        return this.locations.get(id);
     }
 }
 

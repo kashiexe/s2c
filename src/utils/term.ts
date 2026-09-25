@@ -3,9 +3,9 @@ export enum palette {
     black = 0,
     white = 15,
     red = 9,
-    green = 46,
-    blue = 21,
-    yellow = 226,
+    green = 85,
+    blue = 45,
+    yellow = 221,
     cyan = 51,
     magenta = 201,
 }
@@ -26,4 +26,12 @@ export function fg(color: palette, styles?: style[]): string {
 
 export function bg(color: palette, styles?: style[]): string {
     return `\x1b[48;5;${color}${styles ? ";" + styles.map(s => s.toString()).join(";") : ""}m`;
+}
+
+/**
+ * stop style
+ * @param style 
+ */
+export function ss(style: style[]): string {
+    return `\x1b[${style.map(s => (s + 20).toString()).join(";")}m`;
 }
