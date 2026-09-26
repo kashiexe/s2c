@@ -1,3 +1,4 @@
+import type { mem } from "../mem.js";
 import { reg } from "../regs.js";
 
 export default class TargetABI {
@@ -28,18 +29,39 @@ export default class TargetABI {
     }
 }
 
+export class FunctionFrame {
+    used_callee: reg[];
+    
+    // already in bytes
+    spilled: number = 0;
+
+    // already in bytes
+    outgoing_spilled: number = 0;
+    
+    constructor() {
+        this.used_callee = [];
+    }
+
+    add(reg: reg) {
+        this.used_callee.push(reg);
+    }
+}
+
 export class Allocation {
-    locations: Map<number, reg>; // for now null but will be StackSlot in the future
+    locations: Map<number, reg | mem>; // for now null but will be StackSlot in the future
+    func_information: Map<string, FunctionFrame>;
+    temp_rbp_offset: number = 0;
 
     constructor() {
         this.locations = new Map();
+        this.func_information = new Map();
     }
 
-    set(id: number, location: reg) {
+    set(id: number, location: reg | mem) {
         this.locations.set(id, location);
     }
 
-    get(id: number): reg | undefined {
+    get(id: number): reg | mem | undefined {
         return this.locations.get(id);
     }
 }

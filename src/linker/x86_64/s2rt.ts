@@ -35,10 +35,6 @@ export default class S2RT {
         }
     }
 
-    update_offsets(plus: number) {
-
-    }
-
     /**
      * linux specific
      */

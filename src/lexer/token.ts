@@ -114,7 +114,7 @@ export const is_char = (c: string): boolean => { return c.charCodeAt(0) >= 65 &&
 export const is_digit = (c: string): boolean => { return c.charCodeAt(0) >= 48 && c.charCodeAt(0) <= 57; };
 
 // list with all mnemonics in S2
-export const mnemonics = ["fun","let"]
+export const mnemonics = ["fun","let","return"]
 
 // all bases allowed for numbers in S2
 export type prefixes = "x" | "b" | "o";

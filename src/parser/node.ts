@@ -7,6 +7,7 @@ export enum NodeType {
     BINARY_EXPR,
     VAR_DECL,
     FUN_DECL,
+    RET_STMT,
     SCOPE
 }
 
@@ -104,6 +105,15 @@ export class FunDecl extends Node {
         this.name = name;
         this.params = params;
         this.body = body;
+    }
+}
+
+export class RetStmt extends Node {
+    value: Node | null;
+
+    constructor(position: span, value: Node | null) {
+        super(NodeType.RET_STMT, position);
+        this.value = value;
     }
 }
 

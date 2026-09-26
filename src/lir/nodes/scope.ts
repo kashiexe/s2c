@@ -2,6 +2,7 @@ import Module from "../module.js";
 import { type Node, Scope } from "../../parser/node.js";
 import BasicBlock from "../bb.js";
 import { translate_node } from "../lir.js";
+import Terminator from "../terminator.js";
 
 export default function scope(module: Module, node: Node, extra?: any): BasicBlock | null {
     const basic_block = new BasicBlock(0, "scope");
@@ -15,6 +16,8 @@ export default function scope(module: Module, node: Node, extra?: any): BasicBlo
                 basic_block.bulk_add(entity);
             } else if(entity instanceof BasicBlock) { // add to extra (should be a Function)
                 extra.add(entity);
+            } else if(entity instanceof Terminator) {
+                basic_block.terminator = entity;
             }
         } else {
             return null;

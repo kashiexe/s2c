@@ -7,7 +7,7 @@ export class mem extends Operand {
     readonly base: reg | undefined;
     readonly index: reg | undefined;
     readonly scale: number | undefined;
-    readonly displacement: bigint | undefined;
+    displacement: bigint | undefined;
     readonly is_rip: boolean = false;
 
     constructor(bits: number, base?: reg, index?: reg, scale?: number, displacement?: bigint) {

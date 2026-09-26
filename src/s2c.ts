@@ -18,6 +18,11 @@ export default function s2c() {
     let func = commands[cmd.name];
     if(func) func(cmd);
     else {
-        console.error(`${fg(palette.red, [style.bold])}[s2c] [CLI]: ${fg(palette.white)}Unimplemented command "${fg(palette.red) + cmd.name + fg(palette.white)}"${reset}`);
+        if(cmd.name.length > 0) console.error(`${fg(palette.red, [style.bold])}[s2c] [CLI]: ${fg(palette.white)}Unimplemented command "${fg(palette.red) + cmd.name + fg(palette.white)}"${reset}`);
+        else {
+            console.error(`${fg(palette.red, [style.bold])}[s2c] [CLI]: ${fg(palette.white)}No command was provided! (type "s2c help" to see available commands)${reset}`);
+        }
+
+        process.exit(1);
     }
 }

@@ -1,6 +1,6 @@
 {
   "name": "s2c",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "s2c's compiler",
   "keywords": [
     "s2c",
@@ -11,7 +11,7 @@
   "type": "module",
   "main": "dist/s2c.js",
   "scripts": {
-    "test": "npx tsc && npm link && s2c"
+    "test": "npx tsc && npm link && s2c compile tests/index.s2"
   },
   "bin": {
     "s2c": "./dist/bin/s2c.js"

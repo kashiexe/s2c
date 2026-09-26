@@ -4,6 +4,14 @@ import type { Allocation } from "./allocators/sysvamd.js";
 import BasicBlock from "../../lir/bb.js";
 import translate_instr from "./lir/translate_instr.js";
 import translate_term from "./lir/translate_term.js";
+import { InstructionType } from "../../lir/instr.js";
+import push from "./instructions/push.js";
+import { rbp, rsp } from "./regs.js";
+import mov from "./instructions/mov.js";
+import sub from "./instructions/sub.js";
+import { imm64 } from "./imm.js";
+import { ptr64 } from "./mem.js";
+import pop from "./instructions/pop.js";
 
 /**
  * translates a single basic block into x86_64 instructions
@@ -12,21 +20,26 @@ import translate_term from "./lir/translate_term.js";
  * @param alloc 
  * @param os 
  * @param cgblock 
+ * @param no_term 
  */
-export function translate_block(module: Module, block: BasicBlock, alloc: Allocation, os: string, cgblock: CGBlock) {
+export function translate_block(module: Module, block: BasicBlock, alloc: Allocation, os: string, cgblock: CGBlock, no_term?: boolean) {
     const instructions = block.instructions;
 
     for(let i = 0; i < instructions.length; i++) {
         const instr = instructions[i]!;
+
+        if(instr.type === InstructionType.Raw) continue;
 
         // translate instruction
         let bytes = translate_instr(instr, alloc);
         cgblock.add(bytes);
     }
 
-    // translate terminator
-    let bytes = translate_term(block.terminator, alloc);
-    cgblock.add(bytes);
+    // translate terminator (by default)
+    if(!no_term) {
+        let bytes = translate_term(block.terminator, alloc);
+        cgblock.add(bytes);
+    }
 }
 
 /**
@@ -54,8 +67,49 @@ export default function translate(module: Module, alloc: Allocation, os: string)
 
         cgblock.add(symbol);
 
+        // get function info from alloc
+        let func_info = alloc.func_information.get(func.name)!;
+
+        // emit prologue [for now, all functions have prologues and epilogues with rbp setup]
+        let frame_size = func_info.spilled + func_info.outgoing_spilled + (func_info.used_callee.length * 8) + 8;
+        let aligned_frame_size = (frame_size + 15) & ~15; // aligned to 16 bytes
+
+        cgblock.add(new Uint8Array([
+            ...push(rbp),
+            ...mov(rbp, rsp),
+            ...sub(rsp, imm64(BigInt(aligned_frame_size)))
+        ]));
+
+        // for each callee saved register used (save it to the stack first)
+        for(let i = 0; i < func_info.used_callee.length; i++) {
+            let callee = func_info.used_callee[i]!;
+
+            cgblock.add(mov(ptr64(rbp, undefined, undefined, BigInt(-8 * (i + 1))), callee));
+        }
+
+        alloc.temp_rbp_offset = func_info.spilled;
+
         // translate entry block first
-        translate_block(module, func.entry, alloc, os, cgblock);
+        translate_block(module, func.entry, alloc, os, cgblock, true); // no terminator translation for entry block as it requires an epilogue first
+
+        // emit epilogue
+        
+        // restore rbp
+        let epilogue_bytes: number[] = [];
+        
+        // restore callee saved registers
+        for(let i = 0; i < func_info.used_callee.length; i++) {
+            let callee = func_info.used_callee[i]!;
+            epilogue_bytes.push(...mov(callee, ptr64(rbp, undefined, undefined, BigInt(-8 * (i + 1)))));
+        }
+
+        epilogue_bytes = [...epilogue_bytes, ...mov(rsp, rbp), ...pop(rbp)];
+
+        // translate terminator
+        let bytes = translate_term(func.entry.terminator, alloc, new Uint8Array(epilogue_bytes));
+        cgblock.add(bytes);
+
+        alloc.temp_rbp_offset = 0;
 
         // translate other blocks
         for(let j = 0; j < func.blocks.length; j++) {

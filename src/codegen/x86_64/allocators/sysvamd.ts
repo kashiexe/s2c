@@ -3,11 +3,12 @@
 */
 
 import Module from "../../../lir/module.js";
-import TargetABI, { Allocation } from "./target.js";
-import { regs, r64, reg } from "../regs.js";
+import TargetABI, { Allocation, FunctionFrame } from "./target.js";
+import { regs, r64, reg, rbp } from "../regs.js";
 import type BasicBlock from "../../../lir/bb.js";
 import type Value from "../../../lir/value.js";
-
+import { mem, ptr64 } from "../mem.js";
+import { TerminatorType, RetTerminator } from "../../../lir/terminator.js";
 export { Allocation } from "./target.js";
 
 /**
@@ -77,19 +78,21 @@ export class Interval {
     value: Value;
     start: number;
     end: number;
-    assigned: reg | null = null;
+    assigned: reg | mem | null = null;
+    func_name: string;
 
-    constructor(start: number, end: number, value: Value) {
+    constructor(start: number, end: number, value: Value, func_name: string) {
         this.start = start;
         this.end = end;
         this.value = value;
+        this.func_name = func_name;
     }
 
     update(end: number) {
         this.end = end;
     }
 
-    assign(reg: reg) {
+    assign(reg: reg | mem) {
         this.assigned = reg;
     }
 
@@ -98,7 +101,7 @@ export class Interval {
     }
 }
 
-export function block(ctx: Context, block: BasicBlock) {
+export function block(ctx: Context, block: BasicBlock, func_name: string) {
     let intervals = ctx.intervals;
 
     // go through each instruction in the block
@@ -108,37 +111,160 @@ export function block(ctx: Context, block: BasicBlock) {
         // first update the operands
         for(let operand of instr.operands()) {
             const id = operand;
-            const interval = intervals.get(id);
+            let interval = intervals.get(id);
             
             if(interval) {
                 interval.update(i+1);
-                ctx.current_free--;
+            } else {
+                interval = new Interval(0, i + 1, id, func_name);
+                intervals.set(id, interval);
             }
         }
 
         // check value ID
         if(instr.result) {
             const id = instr.result;
-            const interval = new Interval(i, i+1, id);
-
-            if(ctx.current_free < ctx.free.length) {
-                const reg = ctx.free[ctx.current_free]!;
-                interval.assign(reg);
-                ctx.allocation.set(id.id, reg);
-                ctx.current_free++;
-            } 
-
-            intervals.set(id, interval);
+            let interval = intervals.get(id);
+            if(!interval) {
+                interval = new Interval(i, i+1, id, func_name);
+                intervals.set(id, interval);
+            }
         }
     }
+
+    // update live intervals from symbols in terminator
+    let term = block.terminator;
+    if(term.type === TerminatorType.RET) {
+        const ret = term as RetTerminator;
+        const id = ret.value;
+        if(id) {
+            const interval = intervals.get(id);
+
+            if(interval) {
+                interval.update(block.instructions.length + 1);
+            }
+        }
+    }
+}
+
+/**
+ * generates the intervals for each value in the module
+ * @param ctx 
+ * @param module 
+ */
+export function generate_intervals(ctx: Context, module: Module) {
+    for(const func of module.functions) {
+        // first go through the entry block
+        block(ctx, func.entry, func.name);
+
+        // go through each block
+        for(const __block of func.blocks) {
+            block(ctx, __block, func.name);
+        }
+    }
+}
+
+/**
+ * actually assigns a register/stack slot to a value
+ * @param ctx 
+ * @param value 
+ * @param interval 
+ */
+export function assign(ctx: Context, value: Value, interval: Interval) {
+    // expire old intervals first
+    while(ctx.active.length > 0 && ctx.active[0]!.end <= interval.start) {
+        // remove the expired interval from active
+        const expired = ctx.active.shift()!;
+
+        // if it's not a spilled value, free the register
+        if(expired.assigned instanceof reg) {
+            ctx.free.push(expired.assigned);
+        }
+    }
+
+    
+    // get function information
+    const func_name = interval.func_name;
+    let func_info = ctx.allocation.func_information.get(func_name);
+
+    if(!func_info) {
+        func_info = new FunctionFrame();
+        ctx.allocation.func_information.set(func_name, func_info);
+    }
+
+    // check if there's an available register
+    if(ctx.free.length > 0) {
+        const reg = ctx.free.pop()!;
+
+        // check if reg is callee saved
+        const is_callee_saved = ctx.sysv.callee_saved.some(it => it.name === reg.name);
+
+        // update this block's used callee saved registers if it's a callee saved register and it's not already in the list
+        if(is_callee_saved && !func_info.used_callee.some(it => it.name === reg.name)) {
+            func_info.used_callee.push(reg);
+        }
+
+        // allocate register
+        interval.assign(reg);
+        ctx.allocation.set(value.id, reg);
+
+        // insert into active
+        insert(ctx.active, interval);
+    } else {
+        // spill
+        const last = ctx.active[ctx.active.length - 1]!;
+
+        // evict last
+        if(last && last.end > interval.end) {
+            let register = last.assigned! as reg;
+
+            // give last's register to the new interval
+            interval.assign(register);
+            ctx.allocation.set(value.id, register);
+            ctx.active.pop();
+
+            // spill evicted last to a stack slot
+            spill(ctx, last.value, last);
+            
+            // insert
+            insert(ctx.active, interval);
+        } else {
+            // actually spill into a stack slot
+            spill(ctx, value, interval);
+        }
+    }
+}
+
+export function insert(active: Interval[], interval: Interval) {
+    const i = active.findIndex(it => it.end > interval.end);
+
+    if(i === -1) {
+        active.push(interval);
+    } else {
+        active.splice(i, 0, interval);
+    }
+}
+
+export function spill(ctx: Context, value: Value, interval: Interval) {
+    // actually spill into a stack slot
+    ctx.current += 8;
+    const stack_slot = ptr64(rbp, undefined, undefined, BigInt(-ctx.current));
+    interval.assign(stack_slot);
+    ctx.allocation.set(value.id, stack_slot);
+    
+    // update the function frame's spilled size
+    const func_info = ctx.allocation.func_information.get(interval.func_name)!;
+    func_info.spilled += 8;
 }
 
 export interface Context {
     intervals: Map<Value, Interval>;
     allocation: Allocation;
-    active: reg[];
+    active: Interval[];
+    used_callee: reg[];
     free: reg[];
-    current_free: number;
+    current: number;
+    sysv: SysVAMD64ABI;
 }
 
 export function allocate(module: Module): Allocation {
@@ -147,17 +273,17 @@ export function allocate(module: Module): Allocation {
     // context through blocks and functions
     let intervals: Map<Value, Interval> = new Map();
     let allocation = new Allocation();
-    let ctx: Context = { intervals, active: [], free: sysv.get("allocatable"), current_free: 0, allocation };
+    let ctx: Context = { intervals, active: [], used_callee: [], free: sysv.get("allocatable"), current: 0, allocation, sysv };
 
-    // go through each function
-    for(const func of module.functions) {
-        // first go through the entry block
-        block(ctx, func.entry);
+    // generate the intervals first
+    generate_intervals(ctx, module);
 
-        // go through each block
-        for(const __block of func.blocks) {
-            block(ctx, __block);
-        }
+    // assign registers to each value based on the intervals
+    // sort intervals
+    const sorted_intervals = Array.from(intervals.entries()).sort((a, b) => a[1].start - b[1].start);
+
+    for(const [value, interval] of sorted_intervals) {
+        assign(ctx, value, interval);
     }
 
     return allocation;

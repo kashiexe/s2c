@@ -3,7 +3,6 @@ import Function from "../function.js";
 import { FunDecl } from "../../parser/node.js";
 import BasicBlock from "../bb.js";
 import { translate_node } from "../lir.js"
-import type Instruction from "../instr.js";
 
 export default function fun_decl(module: Module, node: FunDecl): Function | null {
     const func = new Function(node.name);

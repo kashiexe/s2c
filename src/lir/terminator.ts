@@ -34,7 +34,7 @@ export class RetTerminator extends Terminator {
         this.value = value;
     }
 
-    to_string(): string {
+    override to_string(): string {
         let str = "";
         if(this.value) str += `RET %${this.value.id}<${this.value.type}>`;
         else str += "RET";
@@ -54,7 +54,7 @@ export class JmpTerminator extends Terminator {
         this.target = target;
     }
 
-    to_string(): string {
+    override to_string(): string {
         let str = "";
         str += `JMP bb${this.target.id} (${this.target.name})`;
         return str;
@@ -77,7 +77,7 @@ export class BrTerminator extends Terminator {
         this.elseTarget = elseTarget;
     }
 
-    to_string(): string {
+    override to_string(): string {
         let str = "";
         str += `BR %${this.condition.id}<${this.condition.type}> bb${this.thenTarget.id} (${this.thenTarget.name}) bb${this.elseTarget.id} (${this.elseTarget.name})`;
         return str;

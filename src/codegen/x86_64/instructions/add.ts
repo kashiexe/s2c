@@ -1,8 +1,9 @@
 import { Operand, OperandType } from "../operand.js";
 import type { reg } from "../regs.js";
 import type { imm } from "../imm.js";
-import rex, { W,B,R } from "../rex.js";
+import rex, { W,B,R,X } from "../rex.js";
 import modrm_sib from "../modrm_sib.js";
+import type { mem } from "../mem.js";
 
 export function add_r64_r64(dest: reg, src: reg): Uint8Array {
     let bytes = new Uint8Array(3);
@@ -22,6 +23,27 @@ export function add_r64_r64(dest: reg, src: reg): Uint8Array {
     return bytes;
 }
 
+export function add_mem_r64(dest: mem, src: reg): Uint8Array {
+    // modrm and sib bytes
+    const modrm_sib_bytes = modrm_sib(dest, src);
+    let bytes = new Uint8Array(2 + modrm_sib_bytes.length);
+    
+    // rex prefix
+    bytes[0] = rex(W);
+    if(dest.base && dest.base.name >= 8) bytes[0] |= B;
+    if(dest.index && dest.index.name >= 8) bytes[0] |= X;
+    if(src.name >= 8) bytes[0] |= R;
+
+    // opcode
+    bytes[1] = 0x01;
+
+    // set modrm sib bytes
+    bytes.set(modrm_sib_bytes, 2);
+
+    // return the bytes
+    return bytes;
+}
+
 export default function add(dest: Operand, src: Operand): Uint8Array {
     // different sizes not allowed
     if(dest.bits !== src.bits) {
@@ -36,6 +58,10 @@ export default function add(dest: Operand, src: Operand): Uint8Array {
     // reg to reg
     if(dest.type === OperandType.Reg && src.type === OperandType.Reg) {
         if(dest.bits === 64) return add_r64_r64(dest as reg, src as reg);
+    } else if(dest.type === OperandType.Mem) {
+        if(src.type === OperandType.Reg) {
+            if(dest.bits === 64) return add_mem_r64(dest as mem, src as reg);
+        }
     }
 
     // unimplemented

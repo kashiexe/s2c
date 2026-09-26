@@ -1,7 +1,7 @@
 /*
 
 */
-export const commands_list = ["help", "compile", "version"];
+export const commands_list = ["help", "compile", "version", "fmt", "explain"];
 
 export interface flag {
     name: string;
