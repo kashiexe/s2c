@@ -11,7 +11,7 @@ export function sub_r64_imm64(dest: reg, src: imm): Uint8Array {
 
     // rex prefix
     let rex_byte = rex(W);
-    if(dest.name >= 8) rex_byte |= 0x01;
+    if(dest.name >= 8) rex_byte |= B;
     bytes[0] = rex_byte;
     
     // opcode

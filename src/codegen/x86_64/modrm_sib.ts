@@ -165,6 +165,13 @@ export function modrm_sib_ext(ext: number, op: Operand): Uint8Array {
 
 /**
  * general utility to generate modrm/sib bytes for dest src operands
+ * ```js 
+ * modrm_sib(dest, src) // if rm-reg instruction
+ * ```
+ * or
+ * ```js
+ * modrm_sib(src, dest) // if reg-rm instruction
+ * ```
  */
 export default function modrm_sib(dest: Operand, src: Operand): Uint8Array {
     if (dest.bits !== src.bits) {
