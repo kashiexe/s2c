@@ -13,6 +13,10 @@ export function expr_type(module: Module, node: Node, extra?: any): Instruction 
         case TokenType.PLUS: {
             return instructions.add(module, expr, extra);
         }
+
+        case TokenType.MINUS: {
+            return instructions.sub(module, expr, extra);
+        }
     }
 
     return null;
@@ -25,7 +29,7 @@ export function expr_type(module: Module, node: Node, extra?: any): Instruction 
  * @param extra 
  * @returns 
  */
-export default function translate_expr(module: Module, node: Node, extra?: any): Instruction[] | null {
+export default function translate_expr(module: Module, node: Node, extra?: any, push?: boolean): Instruction[] | null {
 
     switch(node.type) {
         // number, string, ...
@@ -34,19 +38,25 @@ export default function translate_expr(module: Module, node: Node, extra?: any):
             if(typeof lit.value === "number") {
                 let val = new Value(module.current_v, ValueType.i64);
                 module.current_v++;
-                return [ new ConstInstr(BigInt(lit.value), val) ];
+                let const_instr = new ConstInstr(BigInt(lit.value), val);
+                if(push) extra.add(const_instr);
+                return [ const_instr ];
             }
         }
 
         // var
         case NodeType.LIT_EXPR: {
             let lit = node as LitExpr;
-            return follow_litexpr(module, lit, extra);
+            let instr = follow_litexpr(module, lit, extra);
+            if(push && instr) extra.bulk_add(instr);
+            return instr;
         }
 
         // a <op> b
         case NodeType.BINARY_EXPR: {
-            return [ expr_type(module, node, extra)! ];
+            let instr = expr_type(module, node, extra);
+            if(push && instr) extra.add(instr);
+            return [ instr! ];
         }
     }
 

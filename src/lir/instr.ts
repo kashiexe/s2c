@@ -4,6 +4,7 @@ export enum InstructionType {
     Raw,
     Const,
     Add,
+    Sub,
     Load,
     Store,
     Call
@@ -84,6 +85,18 @@ export class AddInstr extends BinaryInstr {
     }
 }
 
+export class SubInstr extends BinaryInstr {
+    constructor(lhs: Value, rhs: Value, result: Value) {
+        super(InstructionType.Sub, lhs, rhs, result);
+    }
+    
+    to_string(): string {
+        let str = "";
+        str += `%${this.result.id}<${ValueTypeToString[this.result.type]}>: %${this.lhs.id}<${ValueTypeToString[this.lhs.type]}> - %${this.rhs.id}<${ValueTypeToString[this.rhs.type]}>`
+        return str;
+    }
+}
+
 export class LoadInstr extends Instruction {
     address: Value;
     result: Value;
@@ -117,9 +130,9 @@ export class StoreInstr extends Instruction {
 export class CallInstr extends Instruction {
     callee: Value;
     args: Value[];
-    result?: Value | undefined;
+    result: Value;
 
-    constructor(callee: Value, args: Value[], result?: Value) {
+    constructor(callee: Value, args: Value[], result: Value) {
         super(InstructionType.Call);
         this.callee = callee;
         this.args = args;
@@ -128,5 +141,19 @@ export class CallInstr extends Instruction {
 
     operands(): Value[] {
         return [this.callee, ...this.args];
+    }
+
+    to_string(): string {
+        let str = "";
+
+        if(this.result) {
+            str += `%${this.result.id}<${ValueTypeToString[this.result.type]}>: `;
+        }
+
+        str += `CALL $${this.callee.name ?? "anon_function"}<${ValueTypeToString[this.callee.type]}>(`;
+        str += this.args.map(arg => `%${arg.id}<${ValueTypeToString[arg.type]}>`).join(", ");
+        str += `)`;
+
+        return str;
     }
 }

@@ -1,9 +1,12 @@
-import Instruction, { AddInstr, ConstInstr, InstructionType } from "../../../lir/instr.js";
+import Instruction, { AddInstr, CallInstr, ConstInstr, InstructionType, SubInstr } from "../../../lir/instr.js";
 import type { Allocation } from "../allocators/sysvamd.js";
 import translate_add from "./instructions/add.js";
 import translate_const from "./instructions/const.js";
+import translate_call from "./instructions/call.js";
+import translate_sub from "./instructions/sub.js";
+import type CGBlock from "../cgblock.js";
 
-export default function translate_instr(instr: Instruction, alloc: Allocation): Uint8Array {
+export default function translate_instr(instr: Instruction, alloc: Allocation, cgblock: CGBlock): Uint8Array {
     switch(instr.type) {
         case InstructionType.Const: {
             return translate_const(instr as ConstInstr, alloc);
@@ -11,6 +14,14 @@ export default function translate_instr(instr: Instruction, alloc: Allocation): 
 
         case InstructionType.Add: {
             return translate_add(instr as AddInstr, alloc);
+        }
+
+        case InstructionType.Sub: {
+            return translate_sub(instr as SubInstr, alloc);
+        }
+
+        case InstructionType.Call: {
+            return translate_call(instr as CallInstr, alloc, cgblock);
         }
     }
 

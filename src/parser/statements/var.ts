@@ -58,5 +58,7 @@ export default function vardecl(machine: Machine, prior_attr: any, what: string 
         return null;
     }
 
-    return new VarDecl((token1 as Token).pos, (token1 as Token).value as string, value, is_const);
+    let variable = new VarDecl((token1 as Token).pos, (token1 as Token).value as string, value, is_const);
+
+    return variable;
 }

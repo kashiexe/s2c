@@ -1,4 +1,4 @@
-import type { __section_names__ } from "../../../codegen/x86_64/cgblock.js";
+import { RelocType, type __section_names__ } from "../../../codegen/x86_64/cgblock.js";
 import type S2RT from "../s2rt.js";
 import fs, { chmodSync } from "fs";
 
@@ -407,11 +407,27 @@ export default class ELF {
         }
     }
 
-    resolve_relocations(sections: Section[]) {
+    resolve_relocations(sections: Section[], payload: Uint8Array) {
         let relocations = this.s2rt.ctx.relocations;
+        let view = new DataView(payload.buffer);
 
         for(let reloc of relocations) {
+            let section = reloc.section;
+            let symbol = reloc.symbol;
+            let section_offset = sections.find(s => s.name === `.${section}\0`)?.shdr.offset;
+            let symbol_offset = this.s2rt.ctx.symbols.find(s => s.name === symbol)?.offset;
 
+            if(section_offset === undefined) {
+                throw new Error(`[Engine]: Section ${section} not found for relocation ${reloc.symbol} @ ${reloc.offset}`);
+            }
+
+            if(symbol_offset === undefined) {
+                throw new Error(`[Engine]: Symbol ${symbol} not found for relocation ${reloc.offset}`);
+            }
+
+            let new_offset = (symbol_offset) - Number(reloc.addend) - (reloc.offset);
+            let patch = Number(section_offset) + reloc.offset;
+            view.setInt32(patch, new_offset, true);
         }
     }
 
@@ -458,7 +474,6 @@ export default class ELF {
     link(output: string) {
         let sections = this.create_sections();
         this.generate_segments(sections); // updates this.segments
-        this.resolve_relocations(sections);
         this.shstrtab(); 
 
         // begin writing the ELF file
@@ -548,13 +563,13 @@ export default class ELF {
         this.header.shnum = this.segments.reduce((acc, s) => acc + s.sections.length, 0) + this.nonseg_sections.length + 1;
         this.header.shstrndx = this.header.shnum - 1; // shstrtab is always the last section
         this.header.shoff = ehsize + ph_total_size + BigInt(section_payloads.length);
-        elf_bytes.push(...this.header.to_bytes());
 
-        // write program headers
-        elf_bytes.push(...program_headers_bytes);
+        // relocations
+        let payload_buffer = new Uint8Array([ ...this.header.to_bytes(), ...program_headers_bytes, ...section_payloads ]);
+        this.resolve_relocations(sections, payload_buffer);
 
-        // write section payloads
-        elf_bytes.push(...section_payloads);
+        // write the header, program header bytes and section payloads
+        elf_bytes.push(...payload_buffer);
 
         // write null section header
         let null_section_header = shdr.null();

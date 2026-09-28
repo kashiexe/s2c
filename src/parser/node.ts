@@ -27,11 +27,24 @@ export class Node {
     }
 }
 
+export enum PathElemModifierType {
+    Call,
+    Generics,
+    Subscript,
+    Initializer,
+}
+
+export interface PathElemModifier {
+    type: PathElemModifierType;
+    args: Node[];
+}
+
 export interface PathElem {
     identifier: string;
     pos: span;
     is_prop?: boolean;
     is_member?: boolean;
+    modifiers?: PathElemModifier[];
 }
 
 export class Path extends Node {

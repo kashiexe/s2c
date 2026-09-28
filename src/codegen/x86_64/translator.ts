@@ -31,7 +31,7 @@ export function translate_block(module: Module, block: BasicBlock, alloc: Alloca
         if(instr.type === InstructionType.Raw) continue;
 
         // translate instruction
-        let bytes = translate_instr(instr, alloc);
+        let bytes = translate_instr(instr, alloc, cgblock);
         cgblock.add(bytes);
     }
 

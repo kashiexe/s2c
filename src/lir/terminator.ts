@@ -1,4 +1,4 @@
-import Value from "./value.js";
+import Value, { ValueTypeToString } from "./value.js";
 import BasicBlock from "./bb.js";
 
 export enum TerminatorType {
@@ -36,7 +36,7 @@ export class RetTerminator extends Terminator {
 
     override to_string(): string {
         let str = "";
-        if(this.value) str += `RET %${this.value.id}<${this.value.type}>`;
+        if(this.value) str += `RET %${this.value.id}<${ValueTypeToString[this.value.type]}>`;
         else str += "RET";
         return str;
     }
@@ -79,7 +79,7 @@ export class BrTerminator extends Terminator {
 
     override to_string(): string {
         let str = "";
-        str += `BR %${this.condition.id}<${this.condition.type}> bb${this.thenTarget.id} (${this.thenTarget.name}) bb${this.elseTarget.id} (${this.elseTarget.name})`;
+        str += `BR %${this.condition.id}<${ValueTypeToString[this.condition.type]}> bb${this.thenTarget.id} (${this.thenTarget.name}) bb${this.elseTarget.id} (${this.elseTarget.name})`;
         return str;
     }
 }

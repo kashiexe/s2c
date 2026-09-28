@@ -3,7 +3,7 @@
 */
 
 import Module from "../../../lir/module.js";
-import TargetABI, { Allocation, FunctionFrame } from "./target.js";
+import TargetABI, { Allocation, FunctionFrame, Interval } from "./target.js";
 import { regs, r64, reg, rbp } from "../regs.js";
 import type BasicBlock from "../../../lir/bb.js";
 import type Value from "../../../lir/value.js";
@@ -74,32 +74,7 @@ export class SysVAMD64ABI extends TargetABI {
     }
 }
 
-export class Interval {
-    value: Value;
-    start: number;
-    end: number;
-    assigned: reg | mem | null = null;
-    func_name: string;
-
-    constructor(start: number, end: number, value: Value, func_name: string) {
-        this.start = start;
-        this.end = end;
-        this.value = value;
-        this.func_name = func_name;
-    }
-
-    update(end: number) {
-        this.end = end;
-    }
-
-    assign(reg: reg | mem) {
-        this.assigned = reg;
-    }
-
-    get() {
-        return this.assigned;
-    }
-}
+export { Interval } from "./target.js";
 
 export function block(ctx: Context, block: BasicBlock, func_name: string) {
     let intervals = ctx.intervals;
@@ -126,7 +101,7 @@ export function block(ctx: Context, block: BasicBlock, func_name: string) {
             const id = instr.result;
             let interval = intervals.get(id);
             if(!interval) {
-                interval = new Interval(i, i+1, id, func_name);
+                interval = new Interval(i, i + 1, id, func_name);
                 intervals.set(id, interval);
             }
         }
@@ -137,7 +112,7 @@ export function block(ctx: Context, block: BasicBlock, func_name: string) {
     if(term.type === TerminatorType.RET) {
         const ret = term as RetTerminator;
         const id = ret.value;
-        if(id) {
+        if(id !== undefined) {
             const interval = intervals.get(id);
 
             if(interval) {
@@ -272,7 +247,7 @@ export function allocate(module: Module): Allocation {
 
     // context through blocks and functions
     let intervals: Map<Value, Interval> = new Map();
-    let allocation = new Allocation();
+    let allocation = new Allocation(sysv, intervals);
     let ctx: Context = { intervals, active: [], used_callee: [], free: sysv.get("allocatable"), current: 0, allocation, sysv };
 
     // generate the intervals first

@@ -1,6 +1,6 @@
-import type { AddInstr } from "../../../../lir/instr.js";
+import type { SubInstr } from "../../../../lir/instr.js";
 import type { Allocation } from "../../allocators/sysvamd.js";
-import add from "../../instructions/add.js";
+import sub from "../../instructions/sub.js";
 import mov from "../../instructions/mov.js";
 import push from "../../instructions/push.js";
 import pop from "../../instructions/pop.js";
@@ -9,7 +9,7 @@ import { rax } from "../../regs.js";
 import add_rbp from "../operand_rbp.js";
 import type { mem } from "../../mem.js";
 
-export default function translate_add(instr: AddInstr, alloc: Allocation): Uint8Array {
+export default function translate_sub(instr: SubInstr, alloc: Allocation): Uint8Array {
     let res = alloc.get(instr.result.id)!;
     let lhs = alloc.get(instr.lhs.id)!;
     let rhs = alloc.get(instr.rhs.id)!;
@@ -24,14 +24,14 @@ export default function translate_add(instr: AddInstr, alloc: Allocation): Uint8
     if(res.type === OperandType.Reg && !(res === rhs && res !== lhs)) {
         if(res !== lhs) bytes.push(...mov(res, lhs));
 
-        bytes.push(...add(res, rhs));
+        bytes.push(...sub(res, rhs));
         return new Uint8Array(bytes);
     }
 
     // if result is spilled, use another register temporarily
     bytes.push(...push(rax));
     bytes.push(...mov(rax, lhs));
-    bytes.push(...add(rax, rhs));
+    bytes.push(...sub(rax, rhs));
 
     if(res.type === OperandType.Mem || res !== rax) {
         bytes.push(...mov(res, rax));

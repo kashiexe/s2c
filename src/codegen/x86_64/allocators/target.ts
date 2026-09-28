@@ -1,3 +1,4 @@
+import type Value from "../../../lir/value.js";
 import type { mem } from "../mem.js";
 import { reg } from "../regs.js";
 
@@ -47,14 +48,45 @@ export class FunctionFrame {
     }
 }
 
+export class Interval {
+    value: Value;
+    start: number;
+    end: number;
+    assigned: reg | mem | null = null;
+    func_name: string;
+
+    constructor(start: number, end: number, value: Value, func_name: string) {
+        this.start = start;
+        this.end = end;
+        this.value = value;
+        this.func_name = func_name;
+    }
+
+    update(end: number) {
+        this.end = end;
+    }
+
+    assign(reg: reg | mem) {
+        this.assigned = reg;
+    }
+
+    get() {
+        return this.assigned;
+    }
+}
+
 export class Allocation {
     locations: Map<number, reg | mem>; // for now null but will be StackSlot in the future
     func_information: Map<string, FunctionFrame>;
     temp_rbp_offset: number = 0;
+    abi: TargetABI;
+    intervals: Map<Value, Interval>;
 
-    constructor() {
+    constructor(abi: TargetABI, intervals: Map<Value, Interval>) {
         this.locations = new Map();
         this.func_information = new Map();
+        this.abi = abi;
+        this.intervals = intervals;
     }
 
     set(id: number, location: reg | mem) {
@@ -63,5 +95,25 @@ export class Allocation {
 
     get(id: number): reg | mem | undefined {
         return this.locations.get(id);
+    }
+
+    get_id(register: reg): number | undefined {
+        for(let [id, location] of this.locations.entries()) {
+            if(location instanceof reg && location.name === register.name) {
+                return id;
+            }
+        }
+
+        return undefined;
+    }
+
+    get_interval(id: number): Interval | undefined {
+        for(let interval of this.intervals.values()) {
+            if(interval.value.id === id) {
+                return interval;
+            }
+        }
+        
+        return undefined;
     }
 }

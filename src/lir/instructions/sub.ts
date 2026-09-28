@@ -1,6 +1,6 @@
 import Module from "../module.js";
 import { BinaryExpr } from "../../parser/node.js";
-import { AddInstr } from "../instr.js";
+import { SubInstr } from "../instr.js";
 import translate_expr from "../methods/translate_expr.js";
 import Value, { ValueType }  from "../value.js";
 
@@ -11,7 +11,7 @@ import Value, { ValueType }  from "../value.js";
  * @param extra 
  * @returns 
  */
-export default function add(module: Module, node: BinaryExpr, extra?: any): AddInstr | null {
+export default function sub(module: Module, node: BinaryExpr, extra?: any): SubInstr | null {
     let lhs = translate_expr(module, node.lhs, extra, true);
     let rhs = translate_expr(module, node.rhs, extra, true);
     let result = new Value(module.current_v, ValueType.i64);
@@ -21,6 +21,6 @@ export default function add(module: Module, node: BinaryExpr, extra?: any): AddI
     if(!lhs || !rhs) {
         return null;
     } else {
-        return new AddInstr(lhs[lhs.length - 1]!.result!, rhs[rhs.length - 1]!.result!, result);
+        return new SubInstr(lhs[lhs.length - 1]!.result!, rhs[rhs.length - 1]!.result!, result);
     }
 }

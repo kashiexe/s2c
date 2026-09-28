@@ -54,8 +54,16 @@ export default function compile(command: cmd) {
         }
 
         // write log
-        console.log(`${s2t.fg(s2t.palette.blue, [s2t.style.bold])}• ${what_wrote}${s2t.reset}`);
+        console.log(`${s2t.fg(s2t.palette.blue, [s2t.style.bold])}• ${s2t.fg(s2t.palette.white)}${what_wrote}${s2t.reset}`);
     }
+
+    // module is empty, cannot continue
+    if(module.functions.length === 0) {
+        console.error(
+            `${s2t.fg(s2t.palette.red, [s2t.style.bold])}❌${s2t.fg(s2t.palette.white)} Compilation failed. ${s2t.fg(s2t.palette.red, [s2t.style.bold])}No output was generated.${s2t.reset}`
+        );
+        return;
+    };
 
     // execute
     const x86_64 = arch["x86_64"].execute;

@@ -1,4 +1,4 @@
-import Instruction from "./instr.js";
+import Instruction, { InstructionType } from "./instr.js";
 import Terminator, { TerminatorType } from "./terminator.js";
 import type Value from "./value.js";
 
@@ -67,7 +67,13 @@ export default class BasicBlock {
         if(with_name) str += `${"\t".repeat(ident)}bb${this.id} (${this.name}):\n`;
 
         for(let i = 0; i < this.instructions.length; i++) {
-            str += `${"\t".repeat(ident+1)}${this.instructions[i]!.to_string()}\n`;
+            let instr = this.instructions[i]!;
+
+            if(instr.type === InstructionType.Raw) {
+                continue;
+            }
+
+            str += `${"\t".repeat(ident+1)}${instr.to_string()}\n`;
         }
 
         str += `${"\t".repeat(ident+1)}${this.terminator.to_string()}\n`;

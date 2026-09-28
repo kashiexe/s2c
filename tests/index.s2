@@ -1,8 +1,16 @@
 
+fun e() {
+    let a = 50
+    return a
+}
+
 fun main() {
     let x = 10
     let y = 20
     let z = x + y
+    let a = e()
 
-    return z
+    let test = z + 20 - a
+
+    return test
 }

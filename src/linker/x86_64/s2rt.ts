@@ -42,6 +42,10 @@ export default class S2RT {
         // get main entry symbol
         let main_symbol = this.ctx.symbols.find(s => (s.name === "main" && s.global))!;
 
+        if(!main_symbol) {
+            throw new Error(`[Engine]: no entry point ("main") found in the program.`);
+        }
+
         // first step of the entry point is to set up the stack and call main
         let stack_setup = lnx_parse_stack();
 
@@ -72,7 +76,14 @@ export default class S2RT {
         // add _start to the beginning of the text section
         this.ctx.text = Array<number>().concat([..._start, ...this.ctx.text]);
 
-        // update main's offset
-        main_symbol.offset += _start.length;
+        // update symbols' offsets
+        for(let symbol of this.ctx.symbols) {
+            symbol.offset += _start.length;
+        }
+
+        // update relocations' offsets
+        for(let reloc of this.ctx.relocations) {
+            reloc.offset += _start.length;
+        }
     }
 }
