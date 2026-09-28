@@ -28,7 +28,7 @@ export function sub_r64_imm64(dest: reg, src: imm): Uint8Array {
     return bytes;
 }
 
-export function sub_r64_r64(dest: reg, src: reg): Uint8Array {
+export function sub_rm64_r64(dest: reg, src: reg): Uint8Array {
     const modrm_sib_bytes = modrm_sib(dest, src);
     const bytes = new Uint8Array(2 + modrm_sib_bytes.length);
 
@@ -39,7 +39,7 @@ export function sub_r64_r64(dest: reg, src: reg): Uint8Array {
     bytes[0] = rex_byte;
 
     // opcode
-    bytes[1] = 0x2B;
+    bytes[1] = 0x29;
 
     // modrm bytes
     bytes.set(modrm_sib_bytes, 2);
@@ -61,7 +61,7 @@ export default function sub(dest: Operand, src: Operand): Uint8Array {
         if(src.type === OperandType.Imm) {
             if(dest.bits === 64) return sub_r64_imm64(dest as reg, src as imm);
         } else {
-            if(dest.bits === 64) return sub_r64_r64(dest as reg, src as reg);
+            if(dest.bits === 64) return sub_rm64_r64(dest as reg, src as reg);
         }
     }
 
