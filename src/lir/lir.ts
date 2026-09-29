@@ -28,7 +28,7 @@ export function translate_node(module: Module, node: Node, extra?: any): Functio
         }
     }
 
-    return null;
+    throw new Error(`[Engine]: Unsupported node type: ${node.type}`);
 }
 
 export default function lir(ast: AST): Module {

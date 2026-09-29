@@ -3,6 +3,9 @@ import Function from "../function.js";
 import { FunDecl } from "../../parser/node.js";
 import BasicBlock from "../bb.js";
 import { translate_node } from "../lir.js"
+import { RetTerminator } from "../terminator.js";
+import Value, { ValueType } from "../value.js";
+import { ConstInstr } from "../instr.js";
 
 export default function fun_decl(module: Module, node: FunDecl): Function | null {
     const func = new Function(node.name);
@@ -23,6 +26,13 @@ export default function fun_decl(module: Module, node: FunDecl): Function | null
     }
 
     func.set(entry);
+
+    // default main return
+    if(node.name === "main" && !(entry.terminator as RetTerminator)?.value) {
+        let ret_val = new ConstInstr(0n, new Value(module.current_v++, ValueType.i64));
+        entry.add(ret_val);
+        entry.terminator = new RetTerminator(ret_val.result);
+    }
 
     return func;
 }

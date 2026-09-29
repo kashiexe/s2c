@@ -157,6 +157,23 @@ export default function lexer(code: string): Token[] {
                     break;
                 }
 
+                case '"': {
+                    // string literal
+                    let str_content = "";
+                    i++;
+                    column++;
+
+                    while(i < code.length && code[i] !== '"') {
+                        str_content += code[i];
+                        i++;
+                        column++;
+                    }
+
+                    tokens.push({ type: TokenType.STRING, value: str_content, pos: { line, column, offset: i - str_content.length - 1, length: str_content.length + 2 } });
+
+                    break;
+                }
+
                 default: {
                     let operator_3c = nn + n + c, operator_2c = n + c, operator_1c = c;
 

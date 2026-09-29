@@ -131,14 +131,16 @@ export class RetStmt extends Node {
 }
 
 /**
- * corresponds to a literal entity in S2 (numbers, strings, arrays, maps, or anything that can be represented directly at codegen)
+ * corresponds to a literal entity in S2 (numbers, strings, arrays, maps, or anything that can be represented statically)
  */
 export class Literal extends Node {
     value: string | number;
+    subtype: TokenType;
 
-    constructor(position: span, value: string | number) {
+    constructor(position: span, value: string | number, subtype: TokenType) {
         super(NodeType.LITERAL, position);
         this.value = value;
+        this.subtype = subtype;
     }
 }
 

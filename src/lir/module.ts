@@ -22,6 +22,11 @@ export default class Module {
     to_string(): string {
         let str = "";
 
+        for(let i = 0; i < this.dataObjs.length; i++) {
+            str += this.dataObjs[i]!.to_string();
+            str += "\n";
+        }
+
         for(let i = 0; i < this.functions.length; i++) {
             str += this.functions[i]!.to_string();
             str += "\n";

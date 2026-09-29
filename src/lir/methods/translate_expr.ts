@@ -1,10 +1,11 @@
 import Module from "../module.js";
 import { TokenType } from "../../lexer/token.js";
 import { type Node, NodeType, Literal, BinaryExpr, LitExpr } from "../../parser/node.js";
-import Instruction, { ConstInstr } from "../instr.js";
+import Instruction, { ConstInstr, StringInstr } from "../instr.js";
 import Value, { ValueType } from "../value.js";
 import * as instructions from "../instructions/hub.js"
 import follow_litexpr from "./follow_litexpr.js";
+import DataObj, { DataType } from "../data.js";
 
 export function expr_type(module: Module, node: Node, extra?: any): Instruction | null {
     let expr = node as BinaryExpr;
@@ -41,7 +42,23 @@ export default function translate_expr(module: Module, node: Node, extra?: any, 
                 let const_instr = new ConstInstr(BigInt(lit.value), val);
                 if(push) extra.add(const_instr);
                 return [ const_instr ];
+            } else if(typeof lit.value === "string") {
+                // create a value and a string instruction with it
+                let val = new Value(module.current_v, ValueType.string);
+                module.current_v++;
+                let const_instr = new StringInstr(val);
+                if(push) extra.add(const_instr);
+
+                // add the string to the module's data section
+                let str_data = new Uint8Array(Buffer.from(lit.value + "\0", "utf-8"));
+                let data_obj = new DataObj(val.id, DataType.String, str_data, 0);
+                module.add(data_obj);
+
+                // return instruction 
+                return [ const_instr ];
             }
+
+            throw new Error(`[Engine]: Unsupported literal type: ${typeof lit.value}`);
         }
 
         // var
@@ -58,7 +75,9 @@ export default function translate_expr(module: Module, node: Node, extra?: any, 
             if(push && instr) extra.add(instr);
             return [ instr! ];
         }
-    }
 
-    return null;
+        default: {
+            throw new Error(`[Engine]: Unsupported node type: ${node.type}`);
+        }
+    }
 }

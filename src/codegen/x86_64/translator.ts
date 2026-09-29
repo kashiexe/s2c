@@ -12,6 +12,7 @@ import sub from "./instructions/sub.js";
 import { imm64 } from "./imm.js";
 import { ptr64 } from "./mem.js";
 import pop from "./instructions/pop.js";
+import { DataTypeToString } from "../../lir/data.js";
 
 /**
  * translates a single basic block into x86_64 instructions
@@ -51,6 +52,23 @@ export function translate_block(module: Module, block: BasicBlock, alloc: Alloca
 export default function translate(module: Module, alloc: Allocation, os: string): CGBlock {
     const cgblock = new CGBlock(os);
 
+    // translate the data objects
+    for(let i = 0; i < module.dataObjs.length; i++) {
+        let data_obj = module.dataObjs[i]!;
+        let type = data_obj.type;
+        let symbol = new Symbol(
+            `${DataTypeToString[type]}$${data_obj.id}`,
+            "rodata",
+            cgblock.rodata.length,
+            data_obj.data.length,
+            true
+        );
+        
+        cgblock.add(symbol);
+        cgblock.rodata.push(...data_obj.data);
+    }
+
+    // translate the functions
     for(let i = 0; i < module.functions.length; i++) {
         const func = module.functions[i]!;
 

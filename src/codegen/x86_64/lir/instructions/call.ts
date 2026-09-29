@@ -61,7 +61,7 @@ export default function translate_call(instr: CallInstr, alloc: Allocation, bloc
         "text",
         RelocType.Relative,
         instr.callee.name!,
-        4n
+        -4n
     ));
 
     // create mov rax to result (if there is a rax outliving the call, we need to spill it)

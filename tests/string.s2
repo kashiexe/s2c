@@ -1,0 +1,6 @@
+
+fun main() {
+    let c = "hello world"
+    let a = "test 2"
+    let b = "test 3"
+}

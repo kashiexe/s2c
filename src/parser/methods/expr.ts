@@ -11,7 +11,7 @@ export function parse_nud(machine: Machine): Node | null {
         case TokenType.NUMBER: 
         case TokenType.STRING: {
             machine.advance();
-            return new Literal(token?.pos ?? def_span(), token?.value ?? "");
+            return new Literal((token!).pos, (token!).value, type);
         }
 
         case TokenType.IDENTIFIER: {

@@ -1,4 +1,4 @@
-import { RelocType, type __section_names__ } from "../../../codegen/x86_64/cgblock.js";
+import { Reloc, RelocType, type __section_names__ } from "../../../codegen/x86_64/cgblock.js";
 import type S2RT from "../s2rt.js";
 import fs, { chmodSync } from "fs";
 
@@ -316,7 +316,7 @@ export default class ELF {
                     BigInt(section_data.length + padding - (section_data.length % padding)),
                     0,
                     0,
-                    BigInt(padding),
+                    (section_name === "text") ? BigInt(padding) : 1n,
                     0n
                 );
                 
@@ -344,22 +344,18 @@ export default class ELF {
             this.header.shnum++;
 
             if(flags & SectionFlags.alloc) {
-                let flags_to_find: SegmentFlags = SegmentFlags.executable;
+                // default is R--
+                let flags_to_find: SegmentFlags = SegmentFlags.readable;
 
                 // RW 
                 if(flags & SectionFlags.write) {
                     // update flags_to_find
-                    flags_to_find = SegmentFlags.writable;
+                    flags_to_find |= SegmentFlags.writable;
                 } 
                 // R-X
                 else if(flags & SectionFlags.execinstr) {
                     // update flags_to_find
-                    flags_to_find = SegmentFlags.executable; // only reason I have this is for readability
-                } 
-                // R--
-                else {
-                    // update flags_to_find
-                    flags_to_find = SegmentFlags.readable;
+                    flags_to_find |= SegmentFlags.executable;
                 }
 
                 // try to find a segment with the same flags
@@ -400,6 +396,8 @@ export default class ELF {
                 if(section.name === "bss") {
                     segment.header.memsz += BigInt(section.shdr.size);
                 }
+
+                continue;
             }
 
             // other sections that are not part of a segment will be handled separately during link()
@@ -412,22 +410,52 @@ export default class ELF {
         let view = new DataView(payload.buffer);
 
         for(let reloc of relocations) {
-            let section = reloc.section;
-            let symbol = reloc.symbol;
-            let section_offset = sections.find(s => s.name === `.${section}\0`)?.shdr.offset;
-            let symbol_offset = this.s2rt.ctx.symbols.find(s => s.name === symbol)?.offset;
+            // get reloc information
+            let sec = reloc.section;
+            let symbol_name = reloc.symbol;
+            let section = sections.find(s => s.name === `.${sec}\0`);
 
-            if(section_offset === undefined) {
+            if(section === undefined) {
                 throw new Error(`[Engine]: Section ${section} not found for relocation ${reloc.symbol} @ ${reloc.offset}`);
             }
 
-            if(symbol_offset === undefined) {
-                throw new Error(`[Engine]: Symbol ${symbol} not found for relocation ${reloc.offset}`);
+            let section_addr = section.shdr.addr + section.shdr.offset;
+
+            // symbol information
+            let symbol = this.s2rt.ctx.symbols.find(s => s.name === symbol_name);
+
+            if(symbol === undefined) {
+                throw new Error(`[Engine]: Symbol ${symbol_name} not found for relocation ${reloc.offset}`);
             }
 
-            let new_offset = (symbol_offset) - Number(reloc.addend) - (reloc.offset);
-            let patch = Number(section_offset) + reloc.offset;
-            view.setInt32(patch, new_offset, true);
+            // symbol section
+            let symbol_section = sections.find(s => s.name === `.${symbol.section}\0`);
+
+            if(symbol_section === undefined) {
+                throw new Error(`[Engine]: Symbol ${symbol_name} has no section for relocation ${reloc.offset}`);
+            }
+
+            // patch offset
+            let patch_offset = Number(section.shdr.offset) + Number(reloc.offset);
+
+            // symbol offset
+            let symbol_section_addr = symbol_section.shdr.addr + symbol_section.shdr.offset;
+            let symbol_offset = symbol.offset;
+
+            // reloc type
+            if(reloc.type === RelocType.Relative) {
+                // set new offset
+                let symbol_address = Number(symbol_section_addr) + Number(symbol_offset) + Number(reloc.addend);
+                let patch = Number(section_addr) + Number(reloc.offset);
+                let new_offset = symbol_address - patch;
+
+                // set new offset to the patch location
+                view.setInt32(patch_offset, new_offset, true);
+
+            } else if(reloc.type === RelocType.Absolute) {
+                // set address to the patch location
+                view.setBigUint64(patch_offset, BigInt(symbol_section_addr + BigInt(symbol_offset) + BigInt(reloc.addend)), true);
+            }
         }
     }
 

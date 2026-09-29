@@ -12,7 +12,7 @@ export default function translate_term(term: Terminator, alloc: Allocation, inse
         const ret_term = term as RetTerminator;
 
         if(!ret_term.value) {
-            return ret(false);
+            return new Uint8Array([...(insert_bytes || []), ...ret(false)]);
         } else {
             let value = alloc.get(ret_term.value.id)!;
 

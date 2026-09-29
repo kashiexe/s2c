@@ -3,6 +3,7 @@ import Value, { ValueTypeToString } from "./value.js";
 export enum InstructionType {
     Raw,
     Const,
+    String,
     Add,
     Sub,
     Load,
@@ -43,6 +44,25 @@ export class ConstInstr extends Instruction {
     to_string(): string {
         let str = "";
         str += `%${this.result.id}<${ValueTypeToString[this.result.type]}>: CONST ${this.value}`;
+        return str;
+    }
+
+    operands(): Value[] {
+        return [];
+    }
+}
+
+export class StringInstr extends Instruction {
+    result: Value;
+    
+    constructor(result: Value) {
+        super(InstructionType.String);
+        this.result = result;
+    }
+
+    to_string(): string {
+        let str = "";
+        str += `%${this.result.id}<${ValueTypeToString[this.result.type]}>: CONST string$${this.result.id}`;
         return str;
     }
 

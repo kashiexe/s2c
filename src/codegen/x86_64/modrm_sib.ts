@@ -63,7 +63,7 @@ export function modrm_sib_raw(reg: number, op: Operand): Uint8Array {
     // rip relative
     if(mem_op.is_rip) {
         bytes = new Uint8Array(5);
-        bytes[0] = modrm(mode.disp32, reg & 0x7, 0b101);
+        bytes[0] = modrm(mode.disp0, reg & 0x7, 0b101);
         let view = new DataView(bytes.buffer);
         view.setInt32(1, Number(mem_op.displacement ?? 0n), true);
         return bytes;
@@ -174,10 +174,6 @@ export function modrm_sib_ext(ext: number, op: Operand): Uint8Array {
  * ```
  */
 export default function modrm_sib(dest: Operand, src: Operand): Uint8Array {
-    if (dest.bits !== src.bits) {
-        throw new Error(`[Engine]: cannot generate modrm/sib bytes for operands of different sizes: (dest<${dest.bits}>, src<${src.bits}>)`);
-    }
-
     if(dest.type === OperandType.Reg && src.type === OperandType.Reg) {
         return modrm_sib_raw((src as reg).name & 0x7, dest);
     }

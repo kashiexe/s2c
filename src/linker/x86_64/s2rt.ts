@@ -78,12 +78,12 @@ export default class S2RT {
 
         // update symbols' offsets
         for(let symbol of this.ctx.symbols) {
-            symbol.offset += _start.length;
+            if(symbol.section === "text") symbol.offset += _start.length;
         }
-
+        
         // update relocations' offsets
         for(let reloc of this.ctx.relocations) {
-            reloc.offset += _start.length;
+            if(reloc.section === "text") reloc.offset += _start.length;
         }
     }
 }

@@ -4,6 +4,11 @@ export enum DataType {
     String
 }
 
+export const DataTypeToString: Record<DataType, string> = {
+    [DataType.Const]: "const",
+    [DataType.String]: "string"
+}
+
 export default class DataObj {
     id: number;
     type: DataType;
@@ -15,5 +20,14 @@ export default class DataObj {
         this.type = type;
         this.data = data;
         this.align = align;
+    }
+
+    to_string(): string {
+        let str = "";
+
+        str += `${DataTypeToString[this.type]}$${this.id}: [${this.data}] (align: ${this.align})`;
+        str += "\n";
+
+        return str;
     }
 }
