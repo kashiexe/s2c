@@ -6,10 +6,14 @@ export default class Machine {
     tokens: Token[];
     offset: number = 0;
     error: boolean = false;
+    code: string;
+    file: string;
 
-    constructor(ast: AST, tokens: Token[]) {
+    constructor(ast: AST, tokens: Token[], code: string, file: string) {
         this.ast = ast;
         this.tokens = tokens;
+        this.code = code;
+        this.file = file;
     }
 
     advance(offset: number = 1): void {

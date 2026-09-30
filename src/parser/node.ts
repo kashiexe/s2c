@@ -8,7 +8,20 @@ export enum NodeType {
     VAR_DECL,
     FUN_DECL,
     RET_STMT,
-    SCOPE
+    SCOPE,
+    ASM_INSTR
+}
+
+export const NodeTypeNames: Record<NodeType, string> = {
+    [NodeType.LITERAL]: "Literal",
+    [NodeType.PATH]: "Path",
+    [NodeType.LIT_EXPR]: "Literal Expression",
+    [NodeType.BINARY_EXPR]: "Binary Expression",
+    [NodeType.VAR_DECL]: "Variable Declaration",
+    [NodeType.FUN_DECL]: "Function Declaration",
+    [NodeType.RET_STMT]: "Return Statement",
+    [NodeType.SCOPE]: "Scope",
+    [NodeType.ASM_INSTR]: "Assembly Instruction"
 }
 
 export class Node {
@@ -170,5 +183,16 @@ export class BinaryExpr extends Node {
         this.lhs = lhs;
         this.rhs = rhs;
         this.op = op;
+    }
+}
+
+export class AssemblyInstr extends Node {
+    instr: string;
+    operands: Node[];
+
+    constructor(position: span, instr: string, operands: Node[]) {
+        super(NodeType.ASM_INSTR, position);
+        this.instr = instr;
+        this.operands = operands;
     }
 }

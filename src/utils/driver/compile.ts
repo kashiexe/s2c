@@ -21,15 +21,15 @@ export default function compile(command: cmd) {
         console.error(
             `${s2t.fg(s2t.palette.red, [s2t.style.bold])}[s2c] Error: ${s2t.fg(s2t.palette.white)}File ${s2t.fg(s2t.palette.red, [s2t.style.bold, s2t.style.underline])}${file}${s2t.ss([s2t.style.underline]) + s2t.fg(s2t.palette.white)} does not exist!${s2t.reset}`
         );
-        return;
+        return 1;
     }
 
     // begin compiling
     const now = new Date();
     const code = fs.readFileSync(file, "utf-8");
-    const tokens = lexer(code);
+    const tokens = lexer(code, file);
 
-    const ast = parse(tokens);
+    const ast = parse(tokens, code, file);
     const module = lir(ast);
 
     // check if debug flag is set
@@ -62,7 +62,7 @@ export default function compile(command: cmd) {
         console.error(
             `${s2t.fg(s2t.palette.red, [s2t.style.bold])}❌${s2t.fg(s2t.palette.white)} Compilation failed. ${s2t.fg(s2t.palette.red, [s2t.style.bold])}No output was generated.${s2t.reset}`
         );
-        return;
+        return 1;
     };
 
     // execute
@@ -79,4 +79,5 @@ export default function compile(command: cmd) {
 
     // compiled!
     console.log(`\x1b[38;5;45;1m• \x1b[38;5;15mCompiled \x1b[38;5;45;4m${file}\x1b[38;5;15;24m to \x1b[38;5;45;4m${output}\x1b[38;5;15;24m in \x1b[38;5;7m${duration}ms\x1b[0m`);
+    return 0;
 }

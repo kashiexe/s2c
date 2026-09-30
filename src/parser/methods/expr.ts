@@ -46,6 +46,13 @@ export function parse_led(machine: Machine, left: Node): Node | null {
     return new BinaryExpr(merge(left.pos, rhs.pos), left, rhs, op);
 }
 
+/**
+ * parse_expr stops at the first token that's invalid to continue expression (aka after expression)
+ * @param machine 
+ * @param min_precedence 
+ * @param lhs 
+ * @returns 
+ */
 export default function parse_expr(machine: Machine, min_precedence: number, lhs?: Node): Node | null {
     let left = lhs ?? parse_nud(machine);
 

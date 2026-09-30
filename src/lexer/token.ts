@@ -23,6 +23,11 @@ export enum TokenType {
     OPEN_BRACE,     // {
     CLOSE_BRACE,    // }
     COMMA,          // ,
+    DOT,            // . (property access)
+    MEMBER,         // :: (member access)
+    ARROW,          // -> (used for function return types)
+    LAMBDA,         // => (used for lambda functions)
+    AT,             // @ (used mainly for assembly instructions or for @user/package imports) [although it will be able to be used for operator overloading in the future]
 }
 
 export const Precedence: Record<number, number> = {
@@ -60,7 +65,12 @@ export const SymbolTokens: Record<string, TokenType> = {
     ")": TokenType.CLOSE_PAREN,
     "{": TokenType.OPEN_BRACE,
     "}": TokenType.CLOSE_BRACE,
-    ",": TokenType.COMMA
+    ",": TokenType.COMMA,
+    ".": TokenType.DOT,
+    "::": TokenType.MEMBER,
+    "->": TokenType.ARROW,
+    "=>": TokenType.LAMBDA,
+    "@": TokenType.AT
 }
 
 export interface span {
@@ -114,7 +124,7 @@ export const is_char = (c: string): boolean => { return c.charCodeAt(0) >= 65 &&
 export const is_digit = (c: string): boolean => { return c.charCodeAt(0) >= 48 && c.charCodeAt(0) <= 57; };
 
 // list with all mnemonics in S2
-export const mnemonics = ["fun","let","return"]
+export const mnemonics = ["fun","let","const","return"]
 
 // all bases allowed for numbers in S2
 export type prefixes = "x" | "b" | "o";

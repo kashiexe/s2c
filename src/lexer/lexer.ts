@@ -1,7 +1,7 @@
 import { TokenType, type Token, is_char, is_digit, mnemonics, bases, SymbolTokens } from "./token.js";
 import * as s2t from "../utils/term.js";
 
-export default function lexer(code: string): Token[] {
+export default function lexer(code: string, file: string): Token[] {
     const tokens: Token[] = [];
 
     // track position
@@ -18,7 +18,7 @@ export default function lexer(code: string): Token[] {
         if(c === "\n") {
             line++;
             column = 0;
-            tokens.push({ type: TokenType.NL, value: "\n", pos: { line, column, offset: i, length: 1 } });
+            tokens.push({ type: TokenType.NL, value: "\\n", pos: { line, column, offset: i, length: 1 } });
         } else {
             column++;
         }
@@ -46,7 +46,7 @@ export default function lexer(code: string): Token[] {
             if(mnemonics.includes(word)) type = TokenType.MNEMONIC;
 
             // push token
-            tokens.push({ type, value: word, pos: { line, column, offset: i - word.length, length: word.length } });
+            tokens.push({ type, value: word, pos: { line, column: column - word.length, offset: i - word.length, length: word.length } });
 
         } else if(is_digit(c)) {
             // initialize number
@@ -121,7 +121,7 @@ export default function lexer(code: string): Token[] {
                 value = Number(num);
             }
 
-            tokens.push({ type: TokenType.NUMBER, value, pos: { line, column, offset: i - num.length, length: num.length }, meta: { suffix: suffixes } });
+            tokens.push({ type: TokenType.NUMBER, value, pos: { line, column: column - num.length, offset: i - num.length, length: num.length }, meta: { suffix: suffixes } });
         } else {
 
             switch(c) {
@@ -169,7 +169,7 @@ export default function lexer(code: string): Token[] {
                         column++;
                     }
 
-                    tokens.push({ type: TokenType.STRING, value: str_content, pos: { line, column, offset: i - str_content.length - 1, length: str_content.length + 2 } });
+                    tokens.push({ type: TokenType.STRING, value: str_content, pos: { line, column: column - str_content.length - 1, offset: i - str_content.length - 1, length: str_content.length + 2 } });
 
                     break;
                 }

@@ -3,6 +3,11 @@ import { Path, type PathElem, type PathElemModifier, PathElemModifierType } from
 import { merge, TokenType } from "../../lexer/token.js"
 import parse_expr from "./expr.js"
 
+/**
+ * element() <-- call modifier initiates with a ( and end in ) (or whatever OPEN_PAREN and CLOSE_PAREN are set to)
+ * @param machine 
+ * @returns 
+ */
 export function parse_call_modifier(machine: Machine): PathElemModifier | null {
     let token = machine.peek();
     if(token?.type !== TokenType.OPEN_PAREN) {
@@ -42,23 +47,31 @@ export function parse_call_modifier(machine: Machine): PathElemModifier | null {
  * @returns 
  */
 export default function parse_path(machine: Machine): Path | null {
+    // initialize preparation for the path node itself
     let token = machine.peek();
     let elements: PathElem[] = [];
 
+    // states
+    let is_prop = false;
+
+    // begin path loop
     while(
         machine.offset_inb() && 
         token?.type === TokenType.IDENTIFIER
     ) {
-        let elem: PathElem = { identifier: token.value as string, pos: token.pos };
+        // create element
+        let elem: PathElem = { identifier: token.value as string, pos: token.pos, is_prop };
 
         // look for modifiers
         machine.advance();
         token = machine.peek();
 
+        // EOF
         if(!token) {
             break;
         };
 
+        // check if current token can be start of a modifier
         switch(token?.type) {
             case TokenType.OPEN_PAREN: {
                 // CALL modifier
@@ -78,9 +91,17 @@ export default function parse_path(machine: Machine): Path | null {
             }
         }
 
+        // push current built element and advance to next token
         elements.push(elem);
         machine.advance();
         token = machine.peek();
+
+        // property access
+        if(token?.type === TokenType.DOT) {
+            is_prop=true;
+            machine.advance();
+            token = machine.peek();
+        }
     }
 
     return new Path(merge((elements[0]!).pos, (elements[elements.length - 1]!).pos), elements);

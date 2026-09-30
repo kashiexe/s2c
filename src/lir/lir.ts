@@ -1,5 +1,5 @@
 import AST from "../parser/ast.js";
-import { FunDecl, type Node, NodeType, RetStmt } from "../parser/node.js";
+import { FunDecl, type Node, NodeType, RetStmt, AssemblyInstr, NodeTypeNames } from "../parser/node.js";
 import Module from "./module.js";
 import nodes from "./nodes/hub.js";
 import Instruction from "./instr.js";
@@ -28,7 +28,7 @@ export function translate_node(module: Module, node: Node, extra?: any): Functio
         }
     }
 
-    throw new Error(`[Engine]: Unsupported node type: ${node.type}`);
+    throw new Error(`[Engine]: Unsupported node type: ${NodeTypeNames[node.type]}`);
 }
 
 export default function lir(ast: AST): Module {

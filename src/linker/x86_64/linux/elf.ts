@@ -336,6 +336,10 @@ export default class ELF {
         return sections;
     }
 
+    align(n: bigint, alignment: bigint): bigint {
+        return ((n + alignment - 1n) / alignment) * alignment;
+    }
+
     generate_segments(sections: Section[]) {
 
         // go through each section and generate segments depending on it's flags
@@ -359,24 +363,37 @@ export default class ELF {
                 }
 
                 // try to find a segment with the same flags
-                let segment = this.segments.find(s => (s.header.flags & flags_to_find) === flags_to_find);
+                let segment = this.segments.find(s => (s.header.flags) === flags_to_find);
 
                 // create segment if it doesn't exist
                 if(!segment) {
-                    let v_addr = 0x400000n;
+                    // calculate some values for the segment header
+
+                    // default values
+                    const v_addr = 0x400000n;
+                    const page_size = 0x1000n;
+
+                    // get previous segment's values
+                    let previous_segment = this.segments[this.segments.length - 1];
+                    let ps_size = previous_segment ? previous_segment.header.filesz : 0n;
+                    let ps_offset = previous_segment ? (previous_segment.header.offset + ps_size) : page_size;
+                    let ps_align = previous_segment ? previous_segment.header.align : page_size;
+                    let offset = previous_segment ? this.align(ps_offset, ps_align) : page_size;
+                    let p_vaddr = previous_segment ? this.align((previous_segment.header.vaddr + previous_segment.header.memsz), ps_align) : v_addr;
                     
+                    // create segment header
                     let segment_header = new phdr(
                         SegmentType.load,
                         flags_to_find,
-                        BigInt(section.shdr.offset),
-                        v_addr + BigInt(section.shdr.offset),
-                        v_addr + BigInt(section.shdr.offset),           // p_addr can be the same as v_addr
+                        offset,
+                        p_vaddr,
+                        p_vaddr,                                        // p_addr can be the same as v_addr
                         BigInt(section.shdr.size),                      // p_filesz
 
                         // p_memsz can be the same (unless bss)
                         BigInt(section.shdr.size + BigInt((section.name === "bss") ? section.shdr.size : 0)),
 
-                        0x1000n                                         // alignment (4KB)
+                        ps_align                                         // alignment (4KB)
                     );
 
                     // update elf's header and push segment
