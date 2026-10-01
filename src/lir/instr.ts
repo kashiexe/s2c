@@ -205,7 +205,7 @@ export class AsmInstr extends Instruction {
     instr: string;
     asm_operands: (AsmReg | Value | number)[];
 
-    constructor(instr: string, operands: (AsmReg | Value)[]) {
+    constructor(instr: string, operands: (AsmReg | Value | number)[]) {
         super(InstructionType.Asm);
         this.instr = instr;
         this.asm_operands = operands;

@@ -3,10 +3,11 @@ import { AssemblyInstr, Literal, LitExpr, type Node, NodeType } from "../../pars
 import Instruction, { AsmInstr, AsmReg } from "../instr.js";
 import Value, { ValueType, ValueTypeToString } from "../value.js";
 import { code_snippet, e_codes, error } from "../../utils/term.js";
+import follow_litexpr from "../methods/follow_litexpr.js";
 
 export default function translate_asm_instr(module: Module, node: AssemblyInstr, extra?: any): Instruction[] | null {
     let instr_name = node.instr.toLowerCase();
-    let asm_operands = [];
+    let asm_operands: (AsmReg | Value | number)[] = [];
 
     for(let i = 0; i < node.operands.length; i++) {
         let operand = node.operands[i]!;
@@ -21,35 +22,23 @@ export default function translate_asm_instr(module: Module, node: AssemblyInstr,
             if(!var_value) {
                 asm_operands.push(new AsmReg(first_name));
             } else {
-                // check var value type
-                if(path.elements.length > 1) {
-                    switch(var_value.type) {
-                        case ValueType.string: {
-                            let param = path.elements[1]!;
+                // follow literal expression which returns a list of instructions
+                let instrs = follow_litexpr(module, operand as LitExpr, extra);
+                if(!instrs || instrs.length === 0) {
+                    error(e_codes.UNDEFINED_SYMBOL, `Undefined variable "${first_name}"`, [code_snippet(module.file, module.code, operand.pos, `This variable was not found in the current scope.`)]);
+                    return null;
+                } 
 
-                            if(param.identifier === "length") {
-                                let str_obj = module.find_data(var_value.id);
-                                if(!str_obj) {
-                                    error(e_codes.UNDEFINED_SYMBOL, `Undefined string data object "${var_value.name ?? "anon_string"}"`, [code_snippet(module.file, module.code, operand.pos, `This string variable was not found in the module's data objects.`)]);
-                                    return null;
-                                } else {
-                                    asm_operands.push(str_obj.data.length);
-                                }
-                            }
-                            break;
-                        }
+                // get value from last instruction
+                let instr = instrs[instrs.length - 1]!;
+                let val = instr.result!;
 
-                        default: {
-                            error(e_codes.MISUSE_OF_TYPE, `Cannot access property of non-object value type: ${ValueTypeToString[var_value.type]}`, [code_snippet(module.file, module.code, operand.pos, `The value is of type: ${ValueTypeToString[var_value.type]}`)]);
-                            return null;
-                        }
-                    }
-
-                    continue;
+                // check if the value is raw (in this instance, we can interact as it has the number necessary for the operands aka comptime)
+                if(val.type === ValueType.RAW_NO_INTERACT) {
+                    asm_operands.push(Number(val.value));
+                } else {
+                    asm_operands.push(val!);
                 }
-                
-                // else we just push the value to the operands list
-                asm_operands.push(extra.i_get(first_name));
             }
         } else if(operand.type === NodeType.LITERAL) {
             let literal_value = (operand as Literal).value;

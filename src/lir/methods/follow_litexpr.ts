@@ -3,6 +3,7 @@ import { PathElemModifierType, type LitExpr } from "../../parser/node.js";
 import Instruction, { CallInstr, InstructionType } from "../instr.js";
 import Value, { ValueType } from "../value.js";
 import { translate_node } from "../lir.js";
+import type_methods from "./types/hub.js";
 
 /**
  * extra being the current basicblock
@@ -13,7 +14,7 @@ import { translate_node } from "../lir.js";
 export default function follow_litexpr(module: Module, node: LitExpr, extra?: any): Instruction[] | null {
     let path = node.id;
 
-    let val: any;
+    let val: any = null;
 
     for(let i = 0; i < path.elements.length; i++) {
         let elem = path.elements[i]!;
@@ -43,8 +44,31 @@ export default function follow_litexpr(module: Module, node: LitExpr, extra?: an
             }
         }
 
-        // if there are no modifiers, then this is a literal variable
-        val = extra.i_get(elem.identifier);
+        // if no val was defined yet, this is the base variable
+        if(!val) {
+            // if there are no modifiers, then this is a literal variable
+            val = extra.i_get(elem.identifier);
+        } else {
+            let type_methods_for_type = type_methods[val.type as ValueType];
+
+            // property (probably)
+            if(elem.is_prop) {
+                // if this type has some in-built type methods
+                if(type_methods_for_type) {
+                    let res = type_methods_for_type["property"]!(module, val, elem);
+                    if(Array.isArray(res)) {
+                        return res;
+                    } else if(res instanceof Value) {
+                        val = res;
+                    } else if(typeof res === "number") {
+                        val = new Value(0, ValueType.RAW_NO_INTERACT);
+                        val.setValue(res);
+                    } else {
+                        return null;
+                    }
+                }
+            }
+        }
     }
     
     if(val) {
