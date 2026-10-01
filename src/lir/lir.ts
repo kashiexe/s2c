@@ -26,13 +26,17 @@ export function translate_node(module: Module, node: Node, extra?: any): Functio
         case NodeType.RET_STMT: {
             return nodes.retstmt(module, node as RetStmt, extra);
         }
+
+        case NodeType.ASM_INSTR: {
+            return nodes.asm_instr(module, node as AssemblyInstr, extra);
+        }
     }
 
     throw new Error(`[Engine]: Unsupported node type: ${NodeTypeNames[node.type]}`);
 }
 
-export default function lir(ast: AST): Module {
-    const module = new Module();
+export default function lir(ast: AST, file: string, code: string): Module {
+    const module = new Module(file, code);
 
     for(let i = 0; i < ast.nodes.length; i++) {
         const node = ast.nodes[i] as Node;
@@ -42,7 +46,7 @@ export default function lir(ast: AST): Module {
             if(!Array.isArray(entity) && !(entity instanceof BasicBlock) && !(entity instanceof Terminator)) module.add(entity);
             // still don't know what to do with top-level instructions and other blocks
         } else {
-            return new Module();
+            return new Module(file, code);
         }
     }
 

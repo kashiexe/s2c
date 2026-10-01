@@ -1,6 +1,7 @@
 import lexer from "../../lexer/lexer.js";
 import fs from "fs"
 import path from "path"
+import process from "process"
 import { parse } from "../../parser/parser.js";
 import lir from "../../lir/lir.js";
 import arch from "../../codegen/codegen.js";
@@ -9,12 +10,38 @@ import type { cmd } from "./process_args.js";
 import * as s2t from "../term.js"
 
 /**
+ * ```ts
+ * const start = process.hrtime.bigint();
+ * const end = process.hrtime.bigint();
+ * const duration = (end - start);
+ * ```
+ * @param time in ns
+ */
+export function process_time(time: bigint): string {
+    let suffixes = ["ns", "μs", "ms", "s"];
+    let i = 0;
+    let t = Number(time);
+    
+    while(t >= 1000 && i < suffixes.length - 1) {
+        t /= 1000;
+        i++;
+    }
+
+    return `${t.toFixed(3)}${suffixes[i]}`;
+}
+
+/**
  * for now, it can only support a single file and the output is in x86_64 linux sysvamd ABI format.
  */
 export default function compile(command: cmd) {
     // remove information from command
     const file = (command.value.length > 0) ? command.value : "./index.s2";
-    const output = command.flags["output"] ?? `./build/${path.parse(file).name}`;
+    let output = command.flags["output"];
+
+    if(!output) {
+        fs.mkdirSync("./build", { recursive: true });
+        output = `./build/${path.parse(file).name}`;
+    }
 
     // check if file exists
     if(!fs.existsSync(file)) {
@@ -25,12 +52,12 @@ export default function compile(command: cmd) {
     }
 
     // begin compiling
-    const now = new Date();
+    const now = process.hrtime.bigint();
     const code = fs.readFileSync(file, "utf-8");
     const tokens = lexer(code, file);
 
     const ast = parse(tokens, code, file);
-    const module = lir(ast);
+    const module = lir(ast, file, code);
 
     // check if debug flag is set
     if(command.flags["debug"]) {
@@ -74,10 +101,10 @@ export default function compile(command: cmd) {
     linker.link({
         output
     });
-    const end = new Date();
-    const duration = end.getTime() - now.getTime();
+    const end = process.hrtime.bigint();
+    const duration = (end - now);
 
     // compiled!
-    console.log(`\x1b[38;5;45;1m• \x1b[38;5;15mCompiled \x1b[38;5;45;4m${file}\x1b[38;5;15;24m to \x1b[38;5;45;4m${output}\x1b[38;5;15;24m in \x1b[38;5;7m${duration}ms\x1b[0m`);
+    console.log(`\x1b[38;5;45;1m• \x1b[38;5;15mCompiled \x1b[38;5;45;4m${file}\x1b[38;5;15;24m to \x1b[38;5;45;4m${output}\x1b[38;5;15;24m in \x1b[38;5;7m${process_time(duration)}\x1b[0m`);
     return 0;
 }

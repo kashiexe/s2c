@@ -8,7 +8,20 @@ export enum InstructionType {
     Sub,
     Load,
     Store,
-    Call
+    Call,
+    Asm
+}
+
+export const InstructionTypeNames: Record<InstructionType, string> = {
+    [InstructionType.Raw]: "Raw",
+    [InstructionType.Const]: "Const",
+    [InstructionType.String]: "String",
+    [InstructionType.Add]: "Add",
+    [InstructionType.Sub]: "Sub",
+    [InstructionType.Load]: "Load",
+    [InstructionType.Store]: "Store",
+    [InstructionType.Call]: "Call",
+    [InstructionType.Asm]: "Asm"
 }
 
 export default class Instruction {
@@ -175,5 +188,45 @@ export class CallInstr extends Instruction {
         str += `)`;
 
         return str;
+    }
+}
+
+export class AsmReg {
+    name: string;
+    bits: number = 0;
+
+    constructor(name: string, bits: number = 0) {
+        this.name = name;
+        this.bits = bits;
+    }
+}
+
+export class AsmInstr extends Instruction {
+    instr: string;
+    asm_operands: (AsmReg | Value | number)[];
+
+    constructor(instr: string, operands: (AsmReg | Value)[]) {
+        super(InstructionType.Asm);
+        this.instr = instr;
+        this.asm_operands = operands;
+    }
+
+    to_string(): string {
+        let str = "";
+        str += `asm#${this.instr} `;
+        str += this.asm_operands.map(op => {
+            if(op instanceof AsmReg) {
+                return `${op.name}`;
+            } else if(op instanceof Value) {
+                return `%${op.id}<${ValueTypeToString[op.type]}>`;
+            } else if(typeof op === "number") {
+                return op;
+            }
+        }).join(", ");
+        return str;
+    }
+
+    operands(): Value[] {
+        return this.asm_operands.filter(op => op instanceof Value) as Value[];
     }
 }

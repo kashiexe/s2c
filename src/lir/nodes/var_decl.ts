@@ -17,7 +17,8 @@ export default function var_decl(module: Module, node: Node, extra?: any): Instr
         return null;
     }
 
-    extra.i_add(vardecl.id, instructions[instructions.length - 1]!.result!);
+    let vardecl_instr_val = instructions[instructions.length - 1]!.result!;
+    extra.i_add(vardecl.id, vardecl_instr_val);
 
     return instructions;
 }

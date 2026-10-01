@@ -13,6 +13,8 @@ import { translate_node } from "../lir.js";
 export default function follow_litexpr(module: Module, node: LitExpr, extra?: any): Instruction[] | null {
     let path = node.id;
 
+    let val: any;
+
     for(let i = 0; i < path.elements.length; i++) {
         let elem = path.elements[i]!;
 
@@ -42,10 +44,11 @@ export default function follow_litexpr(module: Module, node: LitExpr, extra?: an
         }
 
         // if there are no modifiers, then this is a literal variable
-        let val = extra.i_get(elem.identifier);
-        if(val) {
-            return [ new Instruction(InstructionType.Raw, val) ];
-        }
+        val = extra.i_get(elem.identifier);
+    }
+    
+    if(val) {
+        return [ new Instruction(InstructionType.Raw, val) ];
     }
 
     return null;

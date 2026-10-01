@@ -12,6 +12,7 @@ export default class BasicBlock {
     instructions: Instruction[];
     terminator: Terminator;
     internal: Map<string, Value>;
+    parent: BasicBlock | undefined;
 
     constructor(id: number, name: string = "") {
         this.id = id;

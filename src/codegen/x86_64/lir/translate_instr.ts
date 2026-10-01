@@ -1,4 +1,4 @@
-import Instruction, { AddInstr, CallInstr, ConstInstr, InstructionType, SubInstr, StringInstr } from "../../../lir/instr.js";
+import Instruction, { AddInstr, CallInstr, ConstInstr, InstructionType, SubInstr, StringInstr, InstructionTypeNames, AsmInstr } from "../../../lir/instr.js";
 import type { Allocation } from "../allocators/sysvamd.js";
 import translate_add from "./instructions/add.js";
 import translate_const from "./instructions/const.js";
@@ -6,6 +6,7 @@ import translate_call from "./instructions/call.js";
 import translate_sub from "./instructions/sub.js";
 import translate_str from "./instructions/str.js";
 import type CGBlock from "../cgblock.js";
+import translate_asm from "./instructions/asm.js";
 
 export default function translate_instr(instr: Instruction, alloc: Allocation, cgblock: CGBlock): Uint8Array {
     switch(instr.type) {
@@ -27,7 +28,12 @@ export default function translate_instr(instr: Instruction, alloc: Allocation, c
         case InstructionType.Call: {
             return translate_call(instr as CallInstr, alloc, cgblock);
         }
+
+        case InstructionType.Asm: {
+            return translate_asm(instr as AsmInstr, alloc, cgblock);
+        }
     }
 
-    throw new Error(`[Engine]: Instruction translation not implemented for type ${InstructionType[instr.type]}`);
+    console.log(instr);
+    throw new Error(`[Engine]: Instruction translation not implemented for type ${InstructionTypeNames[instr.type]}`);
 }

@@ -59,6 +59,25 @@ export const rip = new reg(64, 0, true);
 
 // misc helpers
 
+export const reg_names: Record<string, reg> = {
+    "rax": rax,
+    "rcx": rcx,
+    "rdx": rdx,
+    "rbx": rbx,
+    "rsp": rsp,
+    "rbp": rbp,
+    "rsi": rsi,
+    "rdi": rdi,
+    "r8":  _r8,
+    "r9":  r9,
+    "r10": r10,
+    "r11": r11,
+    "r12": r12,
+    "r13": r13,
+    "r14": r14,
+    "r15": r15
+};
+
 /**
  * returns a prefix for the bit size override for an instruction if needed
  * @param bits 

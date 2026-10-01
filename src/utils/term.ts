@@ -111,6 +111,12 @@ export enum e_codes {
 
     // parser errors
     UNEXPECTED_TOKEN = 2000,
+
+    // SEMA errors
+
+    // LIR errors
+    MISUSE_OF_TYPE = 4000,
+    UNDEFINED_SYMBOL = 4001,
 }
 
 export function error(e_code: number, message: string, snippets: string[]): void {
