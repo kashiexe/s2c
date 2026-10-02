@@ -7,6 +7,7 @@ import type DataObj from "./data.js";
 import type Function from "./function.js"
 import BasicBlock from "./bb.js";
 import Terminator from "./terminator.js";
+import translate_expr from "./methods/translate_expr.js";
 
 export function translate_node(module: Module, node: Node, extra?: any): Function | DataObj | BasicBlock | Terminator | Instruction[] | null {
     switch(node.type) {
@@ -29,6 +30,12 @@ export function translate_node(module: Module, node: Node, extra?: any): Functio
 
         case NodeType.ASM_INSTR: {
             return nodes.asm_instr(module, node as AssemblyInstr, extra);
+        }
+
+        case NodeType.LIT_EXPR: 
+        case NodeType.LITERAL: {
+            let expr = translate_expr(module, node, extra);
+            return expr;
         }
     }
 

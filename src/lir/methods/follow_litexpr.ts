@@ -25,17 +25,19 @@ export default function follow_litexpr(module: Module, node: LitExpr, extra?: an
             let mod = elem.modifiers[0]!;
             if(mod.type === PathElemModifierType.Call) {
                 // create callee
-                let callee = new Value(0, ValueType.func_ref);
+                let callee = new Value(-1, ValueType.func_ref);
                 callee.setName(elem.identifier);
 
                 // create call instruction
                 let instructions: Instruction[] = [];
                 let nodes = mod.args.map(arg => {
-                    let node = translate_node(module, arg, extra);
-                    if(node instanceof Instruction) {
-                        instructions.push(node);
+                    let node_instructions = translate_node(module, arg, extra);
+                    if(Array.isArray(node_instructions)) {
+                        instructions.push(...node_instructions);
+                        return node_instructions[node_instructions.length - 1]!.result!;
+                    } else {
+                        throw new Error(`[Engine]: Unexpected result type at (${arg.pos.line}:${arg.pos.column}) for node "${arg.type}"`);
                     }
-                    return extra.i_get(arg as any);
                 });
 
                 let result = new Value(module.current_v++, ValueType.i64);
@@ -61,7 +63,7 @@ export default function follow_litexpr(module: Module, node: LitExpr, extra?: an
                     } else if(res instanceof Value) {
                         val = res;
                     } else if(typeof res === "number") {
-                        val = new Value(0, ValueType.RAW_NO_INTERACT);
+                        val = new Value(-1, ValueType.RAW_NO_INTERACT);
                         val.setValue(res);
                     } else {
                         return null;

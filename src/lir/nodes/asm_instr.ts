@@ -8,6 +8,7 @@ import follow_litexpr from "../methods/follow_litexpr.js";
 export default function translate_asm_instr(module: Module, node: AssemblyInstr, extra?: any): Instruction[] | null {
     let instr_name = node.instr.toLowerCase();
     let asm_operands: (AsmReg | Value | number)[] = [];
+    let extra_instructions: Instruction[] = [];
 
     for(let i = 0; i < node.operands.length; i++) {
         let operand = node.operands[i]!;
@@ -37,6 +38,7 @@ export default function translate_asm_instr(module: Module, node: AssemblyInstr,
                 if(val.type === ValueType.RAW_NO_INTERACT) {
                     asm_operands.push(Number(val.value));
                 } else {
+                    extra_instructions.push(...instrs);
                     asm_operands.push(val!);
                 }
             }
@@ -54,5 +56,5 @@ export default function translate_asm_instr(module: Module, node: AssemblyInstr,
 
     // create AsmInstr and return it
     let asm_instr = new AsmInstr(instr_name, asm_operands);
-    return [ asm_instr ];
+    return [ ...extra_instructions, asm_instr ];
 }

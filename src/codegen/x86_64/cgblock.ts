@@ -1,3 +1,5 @@
+import type { reg } from "./regs.js";
+
 export type __section_names__ = "text" | "rodata" | "data" | "bss";
 
 export class Symbol {
@@ -61,6 +63,10 @@ export default class CGBlock {
     // entry offset
     entry: number | undefined;
 
+    // was changed by inline assembly instructions
+    changed: reg[] = [];
+    asm_changed: reg[] = [];
+
     constructor(os: string) {
         this.os = os;
         this.text = [];
@@ -84,5 +90,17 @@ export default class CGBlock {
 
     get(section_name: string | __section_names__): Array<number> | number {
         return this[section_name as keyof CGBlock] as Array<number> | number;
+    }
+
+    changed_index(reg: reg | undefined): number | undefined {
+        if(!reg) return undefined;
+        let index = this.changed.findIndex(r => r.name === reg.name);
+        return index === -1 ? undefined : index;
+    }
+
+    asm_changed_index(reg: reg | undefined): number | undefined {
+        if(!reg) return undefined;
+        let index = this.asm_changed.findIndex(r => r.name === reg.name);
+        return index === -1 ? undefined : index;
     }
 }

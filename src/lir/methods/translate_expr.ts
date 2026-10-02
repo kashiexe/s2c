@@ -30,7 +30,7 @@ export function expr_type(module: Module, node: Node, extra?: any): Instruction 
  * @param extra 
  * @returns 
  */
-export default function translate_expr(module: Module, node: Node, extra?: any, push?: boolean): Instruction[] | null {
+export default function translate_expr(module: Module, node: Node, extra?: any, push: boolean = false): Instruction[] | null {
 
     switch(node.type) {
         // number, string, ...

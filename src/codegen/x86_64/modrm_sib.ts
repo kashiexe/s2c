@@ -64,7 +64,7 @@ export function modrm_sib_raw(reg: number, op: Operand): Uint8Array {
     if(mem_op.is_rip) {
         bytes = new Uint8Array(5);
         bytes[0] = modrm(mode.disp0, reg & 0x7, 0b101);
-        let view = new DataView(bytes.buffer);
+        let view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
         view.setInt32(1, Number(mem_op.displacement ?? 0n), true);
         return bytes;
     }
@@ -83,7 +83,7 @@ export function modrm_sib_raw(reg: number, op: Operand): Uint8Array {
     if(base === undefined && index === undefined) {
         bytes = new Uint8Array(5);
         bytes[0] = modrm(mode.disp0, reg & 0x7, 0b101);
-        let view = new DataView(bytes.buffer);
+        let view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
         view.setInt32(1, Number(disp ?? 0n), true);
         return bytes;
     }
@@ -96,7 +96,7 @@ export function modrm_sib_raw(reg: number, op: Operand): Uint8Array {
         bytes = new Uint8Array(6);
         bytes[0] = modrm(mode.disp0, reg & 0x7, 0b100);     // SIB required
         bytes[1] = sib(mem_op.scale ?? 1, index, 0b101);    // no base
-        let view = new DataView(bytes.buffer);
+        let view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
         view.setInt32(2, Number(disp ?? 0n), true);
         return bytes;
     }
@@ -146,7 +146,7 @@ export function modrm_sib_raw(reg: number, op: Operand): Uint8Array {
     if(disp_size === 1) {
         bytes[current_offset] = Number(disp! & 0xFFn);
     } else if(disp_size === 4) {
-        let view = new DataView(bytes.buffer);
+        let view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
         view.setInt32(current_offset, Number(disp!), true);
     }
 

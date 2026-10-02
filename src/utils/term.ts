@@ -107,6 +107,9 @@ export enum e_codes {
 
     // lexer errors
     UNEXPECTED_CHAR = 1000,
+    TOO_MANY_DOTS   = 1001,
+    INVALID_HEX     = 1002,
+    TOO_MANY_E      = 1003,
 
 
     // parser errors

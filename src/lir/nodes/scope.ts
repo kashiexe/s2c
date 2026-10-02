@@ -5,7 +5,10 @@ import { translate_node } from "../lir.js";
 import Terminator from "../terminator.js";
 
 export default function scope(module: Module, node: Node, extra?: any): BasicBlock | null {
+    let func = Object.hasOwn(extra, "func") ? extra.func! : extra;
+    let block = Object.hasOwn(extra, "entry") ? extra.entry! : undefined;
     const basic_block = new BasicBlock(0, "scope");
+    if(block) basic_block.merge_internals(block);
 
     let scope = node as Scope;
 
@@ -15,7 +18,7 @@ export default function scope(module: Module, node: Node, extra?: any): BasicBlo
             if(Array.isArray(entity)) { // Instruction[]
                 basic_block.bulk_add(entity);
             } else if(entity instanceof BasicBlock) { // add to extra (should be a Function)
-                extra.add(entity);
+                func.add(entity);
             } else if(entity instanceof Terminator) {
                 basic_block.terminator = entity;
             }

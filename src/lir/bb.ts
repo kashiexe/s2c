@@ -81,4 +81,21 @@ export default class BasicBlock {
 
         return str;
     }
+
+    // merge with another basic block
+    merge(other: BasicBlock) {
+        this.instructions.push(...other.instructions);
+
+        this.merge_internals(other);
+
+        this.terminator = other.terminator;
+    }
+
+    merge_internals(other: BasicBlock) {
+        other.internal.forEach((value, key) => {
+            if(!this.internal.get(key)) {
+                this.internal.set(key, value);
+            }
+        })
+    }
 }

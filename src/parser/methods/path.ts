@@ -22,7 +22,6 @@ export function parse_call_modifier(machine: Machine): PathElemModifier | null {
     while(machine.offset_inb() && token?.type !== TokenType.CLOSE_PAREN) {
         // parse arguments here
         let expr = parse_expr(machine, 0);
-        machine.advance();
         token = machine.peek();
 
         if(token?.type === TokenType.COMMA) {
@@ -35,14 +34,14 @@ export function parse_call_modifier(machine: Machine): PathElemModifier | null {
         }
     }
 
-    machine.advance(-1);
-
     return { type: PathElemModifierType.Call, args };
 }
 
 /**
  * parse_path expects the machine.peek() token to be THE triggering IDENTIFIER token
  * in other words, no advancement before calling parse_path
+ * 
+ * also, parse_path stops AT the first token that cannot be part of a path
  * @param machine 
  * @returns 
  */
@@ -53,6 +52,7 @@ export default function parse_path(machine: Machine): Path | null {
 
     // states
     let is_prop = false;
+    let can_be_type = true;
 
     // begin path loop
     while(
@@ -80,6 +80,7 @@ export default function parse_path(machine: Machine): Path | null {
                     elem.modifiers = elem.modifiers || [];
                     elem.modifiers.push(modifier);
                 }
+                can_be_type = false;
 
                 break;
             }
@@ -104,5 +105,11 @@ export default function parse_path(machine: Machine): Path | null {
         }
     }
 
-    return new Path(merge((elements[0]!).pos, (elements[elements.length - 1]!).pos), elements);
+    if(elements.length === 0) {
+        return null;
+    }
+
+    let path = new Path(merge((elements[0]!).pos, (elements[elements.length - 1]!).pos), elements);
+    path.can_be_type = can_be_type;
+    return path;
 }

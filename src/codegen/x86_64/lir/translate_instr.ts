@@ -32,8 +32,11 @@ export default function translate_instr(instr: Instruction, alloc: Allocation, c
         case InstructionType.Asm: {
             return translate_asm(instr as AsmInstr, alloc, cgblock);
         }
+
+        case InstructionType.Param: {
+            return new Uint8Array([]);
+        }
     }
 
-    console.log(instr);
     throw new Error(`[Engine]: Instruction translation not implemented for type ${InstructionTypeNames[instr.type]}`);
 }

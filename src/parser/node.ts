@@ -6,6 +6,7 @@ export enum NodeType {
     LIT_EXPR,
     BINARY_EXPR,
     VAR_DECL,
+    PARAM,
     FUN_DECL,
     RET_STMT,
     SCOPE,
@@ -18,6 +19,7 @@ export const NodeTypeNames: Record<NodeType, string> = {
     [NodeType.LIT_EXPR]: "Literal Expression",
     [NodeType.BINARY_EXPR]: "Binary Expression",
     [NodeType.VAR_DECL]: "Variable Declaration",
+    [NodeType.PARAM]: "Parameter",
     [NodeType.FUN_DECL]: "Function Declaration",
     [NodeType.RET_STMT]: "Return Statement",
     [NodeType.SCOPE]: "Scope",
@@ -62,6 +64,7 @@ export interface PathElem {
 
 export class Path extends Node {
     elements: PathElem[];
+    can_be_type: boolean = true;
 
     constructor(position: span, elements: PathElem[]) {
         super(NodeType.PATH, position);
@@ -96,9 +99,17 @@ export class VarDecl extends Node {
 /**
  * a parameter is pretty much a variable declaration
  */
-export class Param extends VarDecl {
-    constructor(position: span, id: string, value?: Node, is_const: boolean = false) {
-        super(position, id, value, is_const);
+export class Param extends Node {
+    id: string;
+    param_type?: Path;
+    is_const: boolean = false;
+    is_pointer?: boolean;
+
+    constructor(position: span, id: string, type: Path, is_const: boolean = false) {
+        super(NodeType.PARAM, position);
+        this.id = id;
+        this.param_type = type;
+        this.is_const = is_const;
     }
 }
 
@@ -125,12 +136,14 @@ export class FunDecl extends Node {
     name: string;
     params: Param[];
     body: Scope;
+    ret_type: Path | undefined;
     
-    constructor(position: span, name: string, params: Param[], body: Scope) {
+    constructor(position: span, name: string, params: Param[], body: Scope, ret_type?: Path) {
         super(NodeType.FUN_DECL, position);
         this.name = name;
         this.params = params;
         this.body = body;
+        this.ret_type = ret_type;
     }
 }
 

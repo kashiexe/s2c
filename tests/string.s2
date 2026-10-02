@@ -1,12 +1,18 @@
+/*
+    This file tests the string type as well as parametered functions and inline assembly.
+*/
 
-fun main() {
-    let c = "hello world"
-    let a = "test 2"
-    let b = "test 3"
-
+fun print(s: string) -> i32 {
     @mov(rax, 1)
     @mov(rdi, 1)
-    @mov(rsi, c)
-    @mov(rdx, c.length)
+    @mov(rsi, s)
+    @mov(rdx, s.length)
     @syscall()
+    return 0
+}
+
+fun main(argc: i32, argv: string*) -> i32 {
+    let c = "hello world";
+    print(c)
+    return 0
 }

@@ -1,8 +1,9 @@
 import Machine from "../machine.js";
-import { VarDecl } from "../node.js";
-import * as s2t from "../../utils/term.js";
+import { Path, VarDecl } from "../node.js";
+import { error, e_codes, code_snippet } from "../../utils/term.js";
 import { type Token, TokenType } from "../../lexer/token.js";
 import parse_expr from "../methods/expr.js";
+import parse_path from "../methods/path.js";
 
 /**
  * initially, a variable declaration in s2 only supports the syntax:
@@ -22,38 +23,54 @@ export default function vardecl(machine: Machine, prior_attr: any, what: string 
 
     const is_const = prior_attr.is_const ?? false;
 
+    // expect identifier first
     const token1 = machine.peek();
-    if(!token1) {
-        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error${s2t.reset + s2t.fg(s2t.palette.white)}: Unexpected end of input while parsing ${what} (at ${machine.peek(-1)?.pos.line}:${machine.peek(-1)?.pos.column}).`);
+    if(!token1 || (token1 as Token).type !== TokenType.IDENTIFIER) {
+        error(e_codes.UNEXPECTED_TOKEN, `Expected identifier after ${what}, got "${token1?.value ?? "EOF"}"`, [code_snippet(machine.file, machine.code, (token1?.pos ?? machine.peek(-1)!.pos), `Unexpected "${token1?.value ?? "EOF"}"`)]);
         machine.error = true;
-        return null;
-    }
-
- 
-    // for now, expect identifier
-    if((token1 as Token).type !== TokenType.IDENTIFIER) {
-        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error${s2t.reset + s2t.fg(s2t.palette.white)}: Expected identifier after ${what} keyword (at ${machine.peek(-1)?.pos.line}:${machine.peek(-1)?.pos.column}).`);
         return null;
     }
 
     // advance and check if assign
     machine.advance();
 
-    const token2 = machine.peek();
+    let assign = machine.peek();
 
-    if(!token2 || (token2 as Token).type !== TokenType.ASSIGN) {
-        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error${s2t.reset + s2t.fg(s2t.palette.white)}: Expected assignment operator after ${what} (at ${machine.peek(-1)?.pos.line}:${machine.peek(-1)?.pos.column}).`);
-        machine.error = true;
-        return null;
+    // default to auto
+    let type = new Path((token1 as Token).pos, [{
+        pos: {
+            line: (token1 as Token).pos.line,
+            column: (token1 as Token).pos.column,
+            offset: (token1 as Token).pos.offset,
+            length: 4
+        },
+        identifier: "auto"
+    }]);
+
+    // check if : type
+    if(assign && (assign as Token).type === TokenType.COLON) {
+        machine.advance();
+
+        let parsed_type = parse_path(machine);
+
+        if(parsed_type) type = parsed_type;
+        assign = machine.peek();
     }
 
-    machine.advance();
+    // check if assign instead
+    if(!assign || (assign as Token).type !== TokenType.ASSIGN) {
+        let uninitialized_variable = new VarDecl((token1 as Token).pos, (token1 as Token).value as string, undefined, is_const);
+        return uninitialized_variable;
+    }
+
+    // advance if inbound
+    if(machine.offset_inb()) machine.advance();
 
     // parse expression
     let value = parse_expr(machine, 0);
 
     if(!value) {
-        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error${s2t.reset + s2t.fg(s2t.palette.white)}: Expected expression after assignment operator in ${what} (at ${machine.peek(-1)?.pos.line}:${machine.peek(-1)?.pos.column}).`);
+        error(e_codes.UNEXPECTED_TOKEN, `Expected expression after assignment operator in ${what}, got "${machine.peek()?.value ?? "EOF"}"`, [code_snippet(machine.file, machine.code, (machine.peek()?.pos ?? machine.peek(-1)!.pos), `Unexpected "${machine.peek()?.value ?? "EOF"}"`)]);
         machine.error = true;
         return null;
     }

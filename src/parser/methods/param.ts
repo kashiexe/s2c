@@ -1,8 +1,47 @@
 import Machine from "../machine.js"
-import { Param } from "../node.js"
-import { TokenType } from "../../lexer/token.js"
-import * as s2t from "../../utils/term.js"
-import vardecl from "../statements/var.js"
+import { Param, Path } from "../node.js"
+import { TokenType, type Token } from "../../lexer/token.js"
+import { error, e_codes, code_snippet } from "../../utils/term.js"
+import parse_path from "./path.js"
+
+/**
+ * stops AT the first token that cannot be part of a parameter (aka after it)
+ * 
+ * @param machine 
+ * @returns 
+ */
+export function param(machine: Machine): Param | null {
+    let token = machine.peek();
+
+    while(machine.offset_inb() && token?.type === TokenType.IDENTIFIER) {
+        const id = token.value as string;
+
+        if(token?.type === TokenType.IDENTIFIER) {
+            machine.advance();
+            token = machine.peek();
+
+            if(token?.type === TokenType.COLON) {
+                machine.advance(); // consume the colon
+
+                let type = parse_path(machine);
+                if(!type) {
+                    machine.error = true;
+                    return null;
+                }
+
+                return new Param((token as Token).pos, id, type);
+            }
+
+            // no type parameter defaults to "any" type
+            return new Param((token as Token).pos, id, new Path((token as Token).pos, [{
+                pos: (token as Token).pos,
+                identifier: "any"
+            }]));
+        }
+    }
+
+    return null;
+}
 
 /**
  * expects the opening paren to be consumed prior to this function
@@ -18,16 +57,25 @@ export default function parse_param(machine: Machine): Param[] | null {
         machine.offset_inb() &&
         token?.type !== TokenType.CLOSE_PAREN
     ) {
-        const vardecl_node = vardecl(machine, {is_const: false}, "function parameter");
-        if(vardecl_node) {
-            params.push(new Param(vardecl_node.pos, vardecl_node.id, vardecl_node.value));
+        const param_node = param(machine);
+        if(!param_node) {
+            machine.error = true;
+            return null;
         }
 
-        machine.advance();
         token = machine.peek();
 
+        // check if pointer
+        if(token?.type === TokenType.MUL) {
+            param_node.is_pointer = true;
+            machine.advance();
+            token = machine.peek();
+        }
+
+        params.push(param_node);
+
         if(token?.type !== TokenType.COMMA && token?.type !== TokenType.CLOSE_PAREN) {
-            console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error${s2t.reset + s2t.fg(s2t.palette.white)}: Expected comma or closing parenthesis after function parameter (at ${s2t.fg(s2t.palette.white, [s2t.style.bold]) + machine.peek(-1)?.pos.line + s2t.reset}:${s2t.fg(s2t.palette.white, [s2t.style.bold]) + machine.peek(-1)?.pos.column + s2t.reset}).`);
+            error(e_codes.UNEXPECTED_TOKEN, `Expected a "," or a ")" after function parameter, instead got ${token?.type ?? "EOF"}`, [code_snippet(machine.file, machine.code, token?.pos ?? machine.peek(-1)!.pos, "")]);
             machine.error = true;
             return null;
         } else if(token?.type === TokenType.COMMA) {
@@ -37,7 +85,7 @@ export default function parse_param(machine: Machine): Param[] | null {
     }
 
     if(token?.type !== TokenType.CLOSE_PAREN) {
-        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error${s2t.reset + s2t.fg(s2t.palette.white)}: Expected closing parenthesis after function parameters (at ${s2t.fg(s2t.palette.white, [s2t.style.bold]) + machine.peek(-1)?.pos.line + s2t.reset}:${s2t.fg(s2t.palette.white, [s2t.style.bold]) + machine.peek(-1)?.pos.column + s2t.reset}).`);
+        error(e_codes.UNEXPECTED_TOKEN, `Expected closing parenthesis after function parameters, instead got ${token?.type ?? "EOF"}`, [code_snippet(machine.file, machine.code, token?.pos ?? machine.peek(-1)!.pos, "")]);
         machine.error = true;
         return null;
     }

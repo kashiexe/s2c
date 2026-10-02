@@ -28,6 +28,7 @@ export enum TokenType {
     ARROW,          // -> (used for function return types)
     LAMBDA,         // => (used for lambda functions)
     AT,             // @ (used mainly for assembly instructions or for @user/package imports) [although it will be able to be used for operator overloading in the future]
+    COLON
 }
 
 export const Precedence: Record<number, number> = {
@@ -70,7 +71,8 @@ export const SymbolTokens: Record<string, TokenType> = {
     "::": TokenType.MEMBER,
     "->": TokenType.ARROW,
     "=>": TokenType.LAMBDA,
-    "@": TokenType.AT
+    "@": TokenType.AT,
+    ":": TokenType.COLON
 }
 
 export interface span {

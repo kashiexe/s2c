@@ -89,7 +89,7 @@ export default function translate(module: Module, alloc: Allocation, os: string)
         let func_info = alloc.func_information.get(func.name)!;
 
         // emit prologue [for now, all functions have prologues and epilogues with rbp setup]
-        let frame_size = func_info.spilled + func_info.outgoing_spilled + (func_info.used_callee.length * 8) + 8;
+        let frame_size = func_info.spilled + func_info.outgoing_spilled + (func_info.used_callee.length * 8) + 8 + 16; // the 16 is an extra padding just in case
         let aligned_frame_size = (frame_size + 15) & ~15; // aligned to 16 bytes
 
         cgblock.add(new Uint8Array([

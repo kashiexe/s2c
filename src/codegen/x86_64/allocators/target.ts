@@ -1,6 +1,6 @@
 import type Value from "../../../lir/value.js";
-import type { mem } from "../mem.js";
-import { reg } from "../regs.js";
+import { ptr64, type mem } from "../mem.js";
+import { rbp, reg } from "../regs.js";
 
 export default class TargetABI {
     allocatable: reg[];
@@ -53,6 +53,7 @@ export class Interval {
     start: number;
     end: number;
     assigned: reg | mem | null = null;
+    permanent: boolean = false;
     func_name: string;
 
     constructor(start: number, end: number, value: Value, func_name: string) {
@@ -90,7 +91,8 @@ export class Allocation {
     }
 
     set(id: number, location: reg | mem) {
-        this.locations.set(id, location);
+        if(this.locations.has(id)) return;
+        else this.locations.set(id, location);
     }
 
     get(id: number): reg | mem | undefined {
@@ -115,5 +117,30 @@ export class Allocation {
         }
         
         return undefined;
+    }
+
+    /**
+     * returns any free register or memory location for the given position
+     * @param position 
+     */
+    get_free_reg(position: number): reg | mem {
+        for(let reg of this.abi.allocatable) {
+            let id = this.get_id(reg);
+            
+            if(id === undefined) {
+                return reg;
+            }
+
+            let interval = this.get_interval(id);
+            
+            if(interval && interval.end < position) {
+                return reg;
+            }
+        }
+
+        // if no free register is found, return a memory location (for now, just return a stack slot)
+        let stack_slot = ptr64(rbp, undefined, undefined, BigInt(-this.temp_rbp_offset - 8));
+        this.temp_rbp_offset += 8;
+        return stack_slot;
     }
 }

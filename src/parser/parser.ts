@@ -14,6 +14,7 @@ import { Node, NodeType, VarDecl } from "./node.js";
 import statements from "./statements/hub.js";
 import * as s2t from "../utils/term.js";
 import asm_instr from "./statements/asm_instr.js";
+import parse_expr from "./methods/expr.js";
 
 /**
  * reads a single token and parses it based on it's type (transfering control to a sub-parser if possible)
@@ -39,6 +40,13 @@ export function parse_token(token: Token, machine: Machine): Node | null {
         case TokenType.AT: {
             machine.advance();
             return asm_instr(machine);
+        }
+
+        case TokenType.IDENTIFIER: {
+            // parse expression
+            let expr = parse_expr(machine, 0);
+            machine.advance(-1); // go back twice since it needs to advance and get back to the token in front of the expression
+            return expr;
         }
     }
 
@@ -66,9 +74,14 @@ export function parse(tokens: Token[], code: string, file: string): AST {
     // for each token (until EOF), parse and add to AST
     while(machine.peek() !== null) {
         // if not EOF, there is a token, so we can assume it's not undefined
-        const token = machine.peek();
+        const token = machine.peek()!;
 
-        const node = parse_token(token!, machine);
+        if(token.type === TokenType.END || token.type === TokenType.NL) {
+            machine.advance();
+            continue;
+        }
+
+        const node = parse_token(token, machine);
 
         if(node) {
             ast.push(node);

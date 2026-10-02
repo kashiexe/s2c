@@ -4,6 +4,8 @@ import parse_scope from "../methods/scope.js";
 import parse_param from "../methods/param.js";
 import { TokenType } from "../../lexer/token.js";
 import * as s2t from "../../utils/term.js";
+import { error, e_codes, code_snippet } from "../../utils/term.js";
+import parse_path from "../methods/path.js";
 
 export default function fundecl(machine: Machine, prior_attr: any): FunDecl | null {
     machine.advance();
@@ -11,7 +13,7 @@ export default function fundecl(machine: Machine, prior_attr: any): FunDecl | nu
     let token = machine.peek();
 
     if(!token || token.type !== TokenType.IDENTIFIER) {
-        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error${s2t.reset + s2t.fg(s2t.palette.white)}: Expected function name after function declaration keyword (at ${s2t.fg(s2t.palette.white, [s2t.style.bold]) + machine.peek(-1)?.pos.line + s2t.reset}:${s2t.fg(s2t.palette.white, [s2t.style.bold]) + machine.peek(-1)?.pos.column + s2t.reset}).`);
+        error(e_codes.UNEXPECTED_TOKEN, `Expected function name after function declaration keyword`, [code_snippet(machine.file, machine.code, token?.pos ?? { line: 0, column: 0, offset: 0, length: 0 }, "Expected function name after function declaration keyword")]);
         machine.error = true;
         return null;
     }
@@ -21,7 +23,7 @@ export default function fundecl(machine: Machine, prior_attr: any): FunDecl | nu
     // expect opening paren
     let open_paren = machine.peek();
     if(!open_paren || open_paren.type !== TokenType.OPEN_PAREN) {
-        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error${s2t.reset + s2t.fg(s2t.palette.white)}: Expected beginning of parameter list after function name in function declaration (at ${s2t.fg(s2t.palette.white, [s2t.style.bold]) + machine.peek(-1)?.pos.line + s2t.reset}:${s2t.fg(s2t.palette.white, [s2t.style.bold]) + machine.peek(-1)?.pos.column + s2t.reset}).`);
+        error(e_codes.UNEXPECTED_TOKEN, `Expected beginning of parameter list after function name in function declaration`, [code_snippet(machine.file, machine.code, open_paren?.pos ?? { line: 0, column: 0, offset: 0, length: 0 }, "Expected beginning of parameter list after function name in function declaration")]);
         machine.error = true;
         return null;
     }
@@ -35,10 +37,24 @@ export default function fundecl(machine: Machine, prior_attr: any): FunDecl | nu
         return null;
     }
 
+    // check if arrow for return type
+    let arrow = machine.peek();
+    let type = undefined;
+    if(arrow && arrow.type === TokenType.ARROW) {
+        machine.advance(); // consume the arrow
+
+        // get return type
+        type = parse_path(machine);
+        if(!type) {
+            machine.error = true;
+            return null;
+        }
+    }
+
     // expect open brace
     let open_brace = machine.peek();
     if(!open_brace || open_brace.type !== TokenType.OPEN_BRACE) {
-        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error${s2t.reset + s2t.fg(s2t.palette.white)}: Expected beginning of function body after parameter list in function declaration (at ${s2t.fg(s2t.palette.white, [s2t.style.bold]) + machine.peek(-1)?.pos.line + s2t.reset}:${s2t.fg(s2t.palette.white, [s2t.style.bold]) + machine.peek(-1)?.pos.column + s2t.reset}).`);
+        error(e_codes.UNEXPECTED_TOKEN, `Expected beginning of function body after parameter list in function declaration`, [code_snippet(machine.file, machine.code, open_brace?.pos ?? { line: 0, column: 0, offset: 0, length: 0 }, "Expected beginning of function body after parameter list in function declaration")]);
         machine.error = true;
         return null;
     }
@@ -51,6 +67,6 @@ export default function fundecl(machine: Machine, prior_attr: any): FunDecl | nu
         machine.error = true;
         return null;
     }
-    
-    return new FunDecl(open_paren.pos, token.value as string, params, body);
+
+    return new FunDecl(open_paren.pos, token.value as string, params, body, type);
 }

@@ -9,6 +9,7 @@ import type BasicBlock from "../../../lir/bb.js";
 import type Value from "../../../lir/value.js";
 import { mem, ptr64 } from "../mem.js";
 import { TerminatorType, RetTerminator } from "../../../lir/terminator.js";
+import { InstructionType } from "../../../lir/instr.js";
 export { Allocation } from "./target.js";
 
 /**
@@ -78,10 +79,32 @@ export { Interval } from "./target.js";
 
 export function block(ctx: Context, block: BasicBlock, func_name: string) {
     let intervals = ctx.intervals;
+    let param_count = 0;
 
     // go through each instruction in the block
     for(let i = 0; i < block.instructions.length; i++) {
         let instr = block.instructions[i]!;
+
+        if(instr.type === InstructionType.Raw) continue;
+
+        // check if instruction is parameter and reserve the correct register
+        if(instr.type === InstructionType.Param) {
+            let param_regs = ctx.sysv.get("caller_saved");
+            let interval = new Interval(i, i + 1, instr.result!, func_name);
+            intervals.set(instr.result!, interval);
+            interval.permanent = true;
+
+            // check if param register has already been taken, if not, spill it
+            if(param_count >= param_regs.length) {
+                spill(ctx, instr.result!, interval);
+            } else {
+                interval.assign(param_regs[param_count]!);
+                ctx.allocation.set(instr.result!.id, param_regs[param_count]!);
+            }
+
+            param_count++;
+            continue;
+        }
         
         // first update the operands
         for(let operand of instr.operands()) {
@@ -146,6 +169,11 @@ export function generate_intervals(ctx: Context, module: Module) {
  * @param interval 
  */
 export function assign(ctx: Context, value: Value, interval: Interval) {
+    // check if interval already has a register (continue if so) or if there's already an interval with this ID
+    if(interval.assigned) {
+        return;
+    };
+
     // expire old intervals first
     while(ctx.active.length > 0 && ctx.active[0]!.end <= interval.start) {
         // remove the expired interval from active
@@ -156,7 +184,6 @@ export function assign(ctx: Context, value: Value, interval: Interval) {
             ctx.free.push(expired.assigned);
         }
     }
-
     
     // get function information
     const func_name = interval.func_name;
@@ -190,7 +217,7 @@ export function assign(ctx: Context, value: Value, interval: Interval) {
         const last = ctx.active[ctx.active.length - 1]!;
 
         // evict last
-        if(last && last.end > interval.end) {
+        if(last && last.end > interval.end && !last.permanent) {
             let register = last.assigned! as reg;
 
             // give last's register to the new interval

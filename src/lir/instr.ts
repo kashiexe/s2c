@@ -1,7 +1,9 @@
+import type { Node } from "../parser/node.js";
 import Value, { ValueTypeToString } from "./value.js";
 
 export enum InstructionType {
     Raw,
+    Param,
     Const,
     String,
     Add,
@@ -14,6 +16,7 @@ export enum InstructionType {
 
 export const InstructionTypeNames: Record<InstructionType, string> = {
     [InstructionType.Raw]: "Raw",
+    [InstructionType.Param]: "Param",
     [InstructionType.Const]: "Const",
     [InstructionType.String]: "String",
     [InstructionType.Add]: "Add",
@@ -27,15 +30,17 @@ export const InstructionTypeNames: Record<InstructionType, string> = {
 export default class Instruction {
     type: InstructionType;
     result?: Value | undefined;
+    node?: Node | undefined;
 
-    constructor(type: InstructionType, result?: Value) {
+    constructor(type: InstructionType, result?: Value, node?: Node) {
         this.type = type;
         this.result = result;
+        this.node = node;
     }
 
     to_string(): string {
         let str = "";
-        if(this.result) str = `%${this.result.id}<${ValueTypeToString[this.result.type]}>`;
+        if(this.result) str = `${this.result.to_string()}`;
         return str;
     }
 
@@ -56,7 +61,7 @@ export class ConstInstr extends Instruction {
 
     to_string(): string {
         let str = "";
-        str += `%${this.result.id}<${ValueTypeToString[this.result.type]}>: CONST ${this.value}`;
+        str += `${this.result.to_string()}: CONST ${this.value}`;
         return str;
     }
 
@@ -75,7 +80,7 @@ export class StringInstr extends Instruction {
 
     to_string(): string {
         let str = "";
-        str += `%${this.result.id}<${ValueTypeToString[this.result.type]}>: CONST string$${this.result.id}`;
+        str += `${this.result.to_string()}: CONST string$${this.result.id}`;
         return str;
     }
 
@@ -113,7 +118,7 @@ export class AddInstr extends BinaryInstr {
 
     to_string(): string {
         let str = "";
-        str += `%${this.result.id}<${ValueTypeToString[this.result.type]}>: %${this.lhs.id}<${ValueTypeToString[this.lhs.type]}> + %${this.rhs.id}<${ValueTypeToString[this.rhs.type]}>`
+        str += `${this.result.to_string()}: ${this.lhs.to_string()} + ${this.rhs.to_string()}`
         return str;
     }
 }
@@ -125,7 +130,7 @@ export class SubInstr extends BinaryInstr {
     
     to_string(): string {
         let str = "";
-        str += `%${this.result.id}<${ValueTypeToString[this.result.type]}>: %${this.lhs.id}<${ValueTypeToString[this.lhs.type]}> - %${this.rhs.id}<${ValueTypeToString[this.rhs.type]}>`
+        str += `${this.result.to_string()}: ${this.lhs.to_string()} - ${this.rhs.to_string()}`
         return str;
     }
 }
@@ -180,11 +185,11 @@ export class CallInstr extends Instruction {
         let str = "";
 
         if(this.result) {
-            str += `%${this.result.id}<${ValueTypeToString[this.result.type]}>: `;
+            str += `${this.result.to_string()}: `;
         }
 
         str += `CALL $${this.callee.name ?? "anon_function"}<${ValueTypeToString[this.callee.type]}>(`;
-        str += this.args.map(arg => `%${arg.id}<${ValueTypeToString[arg.type]}>`).join(", ");
+        str += this.args.map(arg => `${arg.to_string()}`).join(", ");
         str += `)`;
 
         return str;
@@ -218,7 +223,7 @@ export class AsmInstr extends Instruction {
             if(op instanceof AsmReg) {
                 return `${op.name}`;
             } else if(op instanceof Value) {
-                return `%${op.id}<${ValueTypeToString[op.type]}>`;
+                return `${op.to_string()}`;
             } else if(typeof op === "number") {
                 return op;
             }
@@ -228,5 +233,20 @@ export class AsmInstr extends Instruction {
 
     operands(): Value[] {
         return this.asm_operands.filter(op => op instanceof Value) as Value[];
+    }
+}
+
+export class Param extends Instruction {
+    result: Value;
+
+    constructor(result: Value) {
+        super(InstructionType.Param);
+        this.result = result;
+    }
+    
+    to_string(): string {
+        let str = "";
+        str += `${this.result.to_string()}: PARAM`;
+        return str;
     }
 }

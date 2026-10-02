@@ -1,5 +1,5 @@
 import { TokenType, type Token, is_char, is_digit, mnemonics, bases, SymbolTokens } from "./token.js";
-import * as s2t from "../utils/term.js";
+import {error, e_codes, code_snippet} from "../utils/term.js";
 
 export default function lexer(code: string, file: string): Token[] {
     const tokens: Token[] = [];
@@ -83,7 +83,8 @@ export default function lexer(code: string, file: string): Token[] {
                             break;
                         } else {
                             // too many dots
-                            console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error:${s2t.reset + s2t.fg(s2t.palette.white)} too many dots in number at ${s2t.fg(s2t.palette.white, [s2t.style.bold]) + line + s2t.reset + s2t.fg(s2t.palette.white)}:${s2t.fg(s2t.palette.white, [s2t.style.bold]) + column + s2t.reset + s2t.fg(s2t.palette.white)}`);
+                            error(e_codes.TOO_MANY_DOTS, "too many dots in number", [code_snippet(file, code, { line, column: column - num.length, offset: i - num.length, length: num.length }, "too many dots to be allowed")]);
+                            return [];
                         }
                     }
                 } else if(is_char(c)) {
@@ -91,10 +92,10 @@ export default function lexer(code: string, file: string): Token[] {
 
                     // if it's not a valid hex digit, throw error
                     if(base === 16 && !(c.toLowerCase() >= "a" && c.toLowerCase() <= "f")) {
-                        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error:${s2t.reset + s2t.fg(s2t.palette.white)} invalid hex digit in number at ${s2t.fg(s2t.palette.white, [s2t.style.bold]) + line + s2t.reset + s2t.fg(s2t.palette.white)}:${s2t.fg(s2t.palette.white, [s2t.style.bold]) + column + s2t.reset + s2t.fg(s2t.palette.white)}`);
+                        error(e_codes.INVALID_HEX, `invalid hex digit "${c}" in number`, [code_snippet(file, code, { line, column: column - num.length, offset: i - num.length, length: num.length }, `invalid hex digit "${c}" in number`)]);
                         return [];
                     } else if(base === 10 && c.toLowerCase() === "e" && (num.includes("e") || num.includes("E"))) {
-                        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error:${s2t.reset + s2t.fg(s2t.palette.white)} too many "e" in number at ${s2t.fg(s2t.palette.white, [s2t.style.bold]) + line + s2t.reset + s2t.fg(s2t.palette.white)}:${s2t.fg(s2t.palette.white, [s2t.style.bold]) + column + s2t.reset + s2t.fg(s2t.palette.white)}`);
+                        error(e_codes.TOO_MANY_E, `too many "e" in number`, [code_snippet(file, code, { line, column: column - num.length, offset: i - num.length, length: num.length }, "too many 'e' in number")]);
                         return [];
                     } else {
                         // custom suffix (should not add to the number itself)
@@ -138,8 +139,8 @@ export default function lexer(code: string, file: string): Token[] {
                         column = 0;
                     } else if(n === "*") {
                         // multi line comment
-                        i += 2;
-                        column += 2;
+                        i++;
+                        column++;
                         
                         while(i < code.length && !(code[i] === "*" && code[i + 1] === "/")) {
                             if(code[i] === "\n") {
@@ -151,8 +152,8 @@ export default function lexer(code: string, file: string): Token[] {
                             i++;
                         }
 
-                        i += 2;
-                        column += 2;
+                        i++;
+                        column++;
                     }
                     break;
                 }
@@ -175,7 +176,7 @@ export default function lexer(code: string, file: string): Token[] {
                 }
 
                 default: {
-                    let operator_3c = nn + n + c, operator_2c = n + c, operator_1c = c;
+                    let operator_3c = c + n + nn, operator_2c = c + n, operator_1c = c;
 
                     let final_operator = "";
                     
@@ -184,11 +185,11 @@ export default function lexer(code: string, file: string): Token[] {
                     else if(operator_1c in SymbolTokens) final_operator = operator_1c;
 
                     if(final_operator.length > 0) {
-                        tokens.push({ type: SymbolTokens[final_operator] as TokenType, value: final_operator, pos: { line, column, offset: i - final_operator.length + 1, length: final_operator.length } });
+                        tokens.push({ type: SymbolTokens[final_operator] as TokenType, value: final_operator, pos: { line, column: column - final_operator.length + 1, offset: i - final_operator.length + 1, length: final_operator.length } });
                         i += final_operator.length - 1;
                         column += final_operator.length - 1;
                     } else if(!/\s/.test(c)){ // check if it's not whitespace
-                        console.error(`${s2t.fg(s2t.palette.red, [s2t.style.bold])}Error:${s2t.reset + s2t.fg(s2t.palette.white)} unknown character "${s2t.fg(s2t.palette.white, [s2t.style.bold]) + c + s2t.reset + s2t.fg(s2t.palette.white)}" at ${s2t.fg(s2t.palette.white, [s2t.style.bold]) + line + s2t.reset + s2t.fg(s2t.palette.white)}:${s2t.fg(s2t.palette.white, [s2t.style.bold]) + column + s2t.reset + s2t.fg(s2t.palette.white)}`);
+                        error(e_codes.UNEXPECTED_CHAR, `unexpected character "${c}"`, [code_snippet(file, code, { line, column: column - 1, offset: i, length: 1 }, `unexpected character "${c}"`)]);
                         return [];
                     }
                 }
